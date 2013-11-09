@@ -1,6 +1,8 @@
 LastPass Python API
 ===================
 
+.. image:: https://coveralls.io/repos/konomae/lastpass-python/badge.png?branch=master :target: https://coveralls.io/r/konomae/lastpass-python?branch=master 
+
 :Original: `lastpass-ruby <https://github.com/detunized/lastpass-ruby>`_
 
 **This is unofficial LastPass API**

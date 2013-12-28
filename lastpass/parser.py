@@ -102,7 +102,7 @@ class Parser(object):
             return self._decode_aes256_ecb_base64(data)
         elif length16 == 1:
             return self._decode_aes256_cbc_plain(data)
-        elif length64 == 6 or length64 == 26 or length64 or 50:
+        elif length64 == 6 or length64 == 26 or length64 == 50:
             return self._decode_aes256_cbc_base64(data)
         else:
             raise RuntimeError("'{}' doesn't seem to be AES-256 encrypted".format(repr(data)))

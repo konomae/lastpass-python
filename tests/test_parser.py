@@ -1,112 +1,179 @@
 # coding: utf-8
 import unittest
+from StringIO import StringIO
+from lastpass.blob import Blob
+from lastpass.chunk import Chunk
 from lastpass.parser import Parser
+from tests.test_data import TEST_BLOB, TEST_CHUNK_IDS, TEST_ACCOUNTS
 
 
-class ParserTest(unittest.TestCase):
-    blob = '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AAACMzIAAAAkNjI2MTZlNjE2ZTYxNzI2NTcwNzU2MjZjNjk2MzJlNjM2ZjZkRVFETgAAABgAAAACMzIAAAAONjc2MTcwMmU2MzZmNmRFUUROAAAAIAAAAAIzMgAAABY2ZjZjNjQ2ZTYxNzY3OTJlNjM2ZjZkRVFETgAAACQAAAACMzIAAAAaNzA2OTcwNjU3MjZjNjk2ZDY1MmU2MzZmNmRFUUROAAAAGgAAAAI0MgAAABA2MjY5NmU2NzJlNjM2ZjZkRVFETgAAACAAAAACNDIAAAAWNjg2Zjc0NmQ2MTY5NmMyZTYzNmY2ZEVRRE4AAAAaAAAAAjQyAAAAEDZjNjk3NjY1MmU2MzZmNmRFUUROAAAAJAAAAAI0MgAAABo2ZDY5NjM3MjZmNzM2ZjY2NzQyZTYzNmY2ZEVRRE4AAAAYAAAAAjQyAAAADjZkNzM2ZTJlNjM2ZjZkRVFETgAAACIAAAACNDIAAAAYNzA2MTczNzM3MDZmNzI3NDJlNmU2NTc0RVFETgAAABwAAAACNTIAAAASNzU2MTMyNjc2ZjJlNjM2ZjZkRVFETgAAABgAAAACNTIAAAAONzU2MTZjMmU2MzZmNmRFUUROAAAAHgAAAAI1MgAAABQ3NTZlNjk3NDY1NjQyZTYzNmY2ZEVRRE4AAAAiAAAAAjgyAAAAGDZmNzY2NTcyNzQ3NTcyNjUyZTYzNmY2ZEVRRE4AAAAcAAAAAjgyAAAAEjc5NjE2ODZmNmYyZTYzNmY2ZEVRRE4AAAAkAAAAAjkyAAAAGjdhNmY2ZTY1NjE2YzYxNzI2ZDJlNjM2ZjZkRVFETgAAACIAAAACOTIAAAAYN2E2ZjZlNjU2YzYxNjI3MzJlNjM2ZjZkRVFETgAAABsAAAADODQyAAAAEDYxNzY2ZjZlMmU2MzZmNmRFUUROAAAAIwAAAAM4NDIAAAAYNzk2Zjc1NzI2MTc2NmY2ZTJlNjM2ZjZkRVFETgAAACwAAAAEMTQ3NAAAACAzMTM4MzAzMDYzNmY2ZTc0NjE2Mzc0NzMyZTYzNmY2ZEVRRE4AAAAqAAAABDE0NzQAAAAeMzgzMDMwNjM2ZjZlNzQ2MTYzNzQ3MzJlNjM2ZjZkVVJVTAAAACgAAAAaNjc2ZjZmNjc2YzY1MmU2MzZmNmQyZjYxMmYAAAABMAAAAAEwVVJVTAAAACQAAAAWNmM2ZjY3NmQ2NTY5NmUyZTYzNmY2ZAAAAAExAAAAATBFTkRNAAAAAk9L'
-    key = "OfOUvVnQzB4v49sNh4+PdwIFb9Fr5+jVfWRTf+E2Ghg=".decode('base64')
-
+class ParserTestCase(unittest.TestCase):
     def setUp(self):
-        self.parser = Parser.parse(self.blob, self.key)
+        self.key_iteration_count = 5000
+        self.blob = Blob(TEST_BLOB, self.key_iteration_count)
+        self.padding = 'BEEFFACE'
+        self.encryption_key = 'OfOUvVnQzB4v49sNh4+PdwIFb9Fr5+jVfWRTf+E2Ghg='.decode('base64')
 
-    def test_type_is_correct(self):
-        self.assertIsInstance(self.parser, Parser)
+        self.chunks = Parser.extract_chunks(self.blob)
+        self.accounts = [Parser.parse_account(i, self.encryption_key) for i in self.chunks['ACCT']]
 
-    def test_parse_fails_with_nil_blob(self):
-        self.assertRaises(ValueError, Parser.parse, None, self.key)
+    def test_extract_chunks_returns_chunks_as_a_dict(self):
+        self.assertIsInstance(self.chunks, dict)
 
-    def test_parse_fails_with_invalid_blob(self):
-        self.assertRaises(ValueError, Parser.parse, '', self.key)
-        self.assertRaises(ValueError, Parser.parse, 'ABCD', self.key)
+    def test_extract_chunks_all_keys_are_strings(self):
+        self.assertListEqual(self.chunks.keys(), TEST_CHUNK_IDS)
 
-    def test_chunks(self):
-        self.assertIsInstance(self.parser.chunks, dict)
-        for id, chunks in self.parser.chunks.items():
-            self.assertIsInstance(id, basestring)
-            self.assertEqual(4, len(id))
-            self.assertRegexpMatches(id, '[A-Z]{4}')
+    def test_extract_chunks_all_values_are_arrays(self):
+        self.assertListEqual(list(set([type(v) for v in self.chunks.values()])), [list])
 
-            self.assertIsInstance(chunks, list)
-            self.assertGreater(len(chunks), 0)
+    def test_extract_chunks_all_arrays_contain_only_chunks(self):
+        self.assertListEqual(list(set([type(c) for v in self.chunks.values() for c in v])), [Chunk])
 
-    def test_chunk_LPAV(self):
-        self.check_only_one_chunk('LPAV', '9')
+    def test_extract_chunks_all_chunks_grouped_under_correct_ids(self):
+        self.assertTrue(all([id == c.id for id, chunk_group in self.chunks.items() for c in chunk_group]))
 
-    def test_chunk_ENCU(self):
-        self.check_only_one_chunk('ENCU', 'postlass@gmail.com')
+    def test_parse_account_parses_account(self):
+        self.assertListEqual([a.id for a in self.accounts], [a.id for a in TEST_ACCOUNTS])
 
-    def test_chunk_NMAC(self):
-        self.check_only_one_chunk('NMAC', '8')
+    def test_read_chunk_returns_a_chunk(self):
+        io = StringIO(('4142434400000004DEADBEEF' + self.padding).decode('hex'))
+        self.assertEqual(Parser.read_chunk(io), Chunk('ABCD', 'DEADBEEF'.decode('hex')))
+        self.assertEqual(io.pos, 12)
 
-    def test_chunk_ACCT(self):
-        self.assertIn('ACCT', self.parser.chunks.keys())
+    def test_read_item_returns_an_item(self):
+        io = StringIO(('00000004DEADBEEF' + self.padding).decode('hex'))
+        self.assertEqual(Parser.read_item(io), 'DEADBEEF'.decode('hex'))
+        self.assertEqual(io.pos, 8)
 
-        accounts = self.parser.chunks['ACCT']
-        self.assertEqual(8, len(accounts))
+    def test_skip_item_skips_an_empty_item(self):
+        io = StringIO(('00000000' + self.padding).decode('hex'))
+        Parser.skip_item(io)
+        self.assertEqual(io.pos, 4)
 
-        test_account = {
-            'id' : '753975336',
-            'name' : 'twitter.com',
-            'group' : '',
-            'url' : 'http://',
-            'extra' : '',
-            'favorite' : '0',
-            'shared_from_id' : '',
-            'username' : 'lostpass',
-            'password' : '1234567890',
-            'password_protected' : '0',
-            'generated_password' : '0',
-            'sn' : '0',
-            'last_touched' : '1339761545',
-            'auto_login' : '0',
-            'never_autofill' : '0',
-            'realm_data' : '',
-            'fiid' : '753975336',
-            'custom_js' : '',
-            'submit_id' : '',
-            'captcha_id' : '',
-            'urid' : '0',
-            'basic_authorization' : '0',
-            'method' : '',
-            'action' : '',
-            'group_id' : '',
-            'deleted' : '0',
-            'attach_key' : '',
-            'attach_present' : '',
-            'individual_share' : '0',
-            'unknown1' : ''
-        }
+    def test_skip_item_skips_a_non_empty_item(self):
+        io = StringIO(('00000004DEADBEEF' + self.padding).decode('hex'))
+        Parser.skip_item(io)
+        self.assertEqual(io.pos, 8)
 
-        for account in accounts:
-            self.assertIsInstance(account, dict)
-            self.assertEqual(sorted(account.keys()), sorted(test_account.keys()))
+    def test_read_id_returns_an_id(self):
+        io = StringIO('ABCD' + self.padding)
+        self.assertEqual(Parser.read_id(io), 'ABCD')
+        self.assertEqual(io.pos, 4)
 
-            for item in test_account.values():
-                self.assertIsInstance(item, basestring)
+    def test_read_size_returns_a_size(self):
+        io = StringIO(('DEADBEEF' + self.padding).decode('hex'))
+        self.assertEqual(Parser.read_size(io), 0xDEADBEEF)
+        self.assertEqual(io.pos, 4)
 
-        for id, item in test_account.items():
-            self.assertEqual(item, accounts[0][id])
+    def test_read_payload_returns_a_payload(self):
+        io = StringIO(('FEEDDEADBEEF' + self.padding).decode('hex'))
+        self.assertEqual(Parser.read_payload(io, 6), 'FEEDDEADBEEF'.decode('hex'))
+        self.assertEqual(io.pos, 6)
 
-    def test_chunk_EQDN(self):
-        self.assertIn('EQDN', self.parser.chunks.keys())
-        domains = self.parser.chunks['EQDN']
-        self.assertEqual(46, len(domains))
+    def test_read_uint32_returns_a_number(self):
+        io = StringIO(('DEADBEEF' + self.padding).decode('hex'))
+        self.assertEqual(Parser.read_size(io), 0xDEADBEEF)
+        self.assertEqual(io.pos, 4)
 
-        test_domain = {'id': '1', 'domain': 'ameritrade.com'}
+    def test_decode_hex_decodes_hex(self):
+        self.assertEqual(Parser.decode_hex(''), '')
+        self.assertEqual(Parser.decode_hex('00ff'), '\x00\xFF')
+        self.assertEqual(Parser.decode_hex('00010203040506070809'), '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09')
+        self.assertEqual(Parser.decode_hex('000102030405060708090a0b0c0d0e0f'), '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F')
+        self.assertEqual(Parser.decode_hex('8af633933e96a3c3550c2734bd814195'), '\x8A\xF6\x33\x93\x3E\x96\xA3\xC3\x55\x0C\x27\x34\xBD\x81\x41\x95')
 
-        for domain in domains:
-            self.assertIsInstance(domain, dict)
-            self.assertEqual(sorted(test_domain.keys()), sorted(domain.keys()))
+    def test_decode_hex_raises_exception_on_odd_length(self):
+        self.assertRaises(TypeError, Parser.decode_hex, '0')
 
-            for item in domain.values():
-                self.assertIsInstance(item, basestring)
+    def test_decode_hex_raises_exception_on_invalid_characters(self):
+        self.assertRaises(TypeError, Parser.decode_hex, 'xz')
 
-        for id, item in test_domain.items():
-            self.assertEqual(item, domains[0][id])
+    def test_decode_base64_decodes_base64(self):
+        self.assertEqual(Parser.decode_base64(''), '')
+        self.assertEqual(Parser.decode_base64('YQ=='), 'a')
+        self.assertEqual(Parser.decode_base64('YWI='), 'ab')
+        self.assertEqual(Parser.decode_base64('YWJj'), 'abc')
+        self.assertEqual(Parser.decode_base64('YWJjZA=='), 'abcd')
 
+    def test_decode_aes256_auto_decodes_a_blank_string(self):
+        self.assertEqual(Parser.decode_aes256_auto('', self.encryption_key), '')
 
-    def check_only_one_chunk(self, id, value):
-        self.assertIn(id, self.parser.chunks.keys())
-        self.assertEqual(1, len(self.parser.chunks[id]))
-        self.assertEqual(value, self.parser.chunks[id][0])
+    def test_decode_aes256_auto_decodes_ecb_plain_string(self):
+        self.assertEqual(Parser.decode_aes256_auto(
+            'BNhd3Q3ZVODxk9c0C788NUPTIfYnZuxXfkghtMJ8jVM='.decode('base64'), self.encryption_key),
+            'All your base are belong to us')
+
+    def test_decode_aes256_auto_decodes_ecb_base64_string(self):
+        self.assertEqual(Parser.decode_aes256_auto(
+            'BNhd3Q3ZVODxk9c0C788NUPTIfYnZuxXfkghtMJ8jVM=', self.encryption_key),
+            'All your base are belong to us')
+
+    def test_decode_aes256_auto_decodes_cbc_plain_string(self):
+        self.assertEqual(Parser.decode_aes256_auto(
+            'IcokDWmjOkKtLpZehWKL6666Uj6fNXPpX6lLWlou+1Lrwb+D3ymP6BAwd6C0TB3hSA=='.decode('base64'), self.encryption_key),
+            'All your base are belong to us')
+
+    def test_decode_aes256_auto_decodes_cbc_base64_string(self):
+        self.assertEqual(Parser.decode_aes256_auto(
+            '!YFuiAVZgOD2K+s6y8yaMOw==|TZ1+if9ofqRKTatyUaOnfudletslMJ/RZyUwJuR/+aI=', self.encryption_key),
+            'All your base are belong to us')
+
+    def test_decode_aes256_ecb_plain_decodes_a_blank_string(self):
+        self.assertEqual(Parser.decode_aes256_ecb_plain(
+            ''.decode('base64'), self.encryption_key),
+            '')
+
+    def test_decode_aes256_ecb_plain_decodes_a_short_string(self):
+        self.assertEqual(Parser.decode_aes256_ecb_plain(
+            '8mHxIA8rul6eq72a/Gq2iw=='.decode('base64'), self.encryption_key),
+            '0123456789')
+
+    def test_decode_aes256_ecb_plain_decodes_a_long_string(self):
+        self.assertEqual(Parser.decode_aes256_ecb_plain(
+            'BNhd3Q3ZVODxk9c0C788NUPTIfYnZuxXfkghtMJ8jVM='.decode('base64'), self.encryption_key),
+            'All your base are belong to us')
+
+    def test_decode_aes256_ecb_base64_decodes_a_blank_string(self):
+        self.assertEqual(Parser.decode_aes256_ecb_base64(
+            '', self.encryption_key),
+            '')
+
+    def test_decode_aes256_ecb_base64_decodes_a_short_string(self):
+        self.assertEqual(Parser.decode_aes256_ecb_base64(
+            '8mHxIA8rul6eq72a/Gq2iw==', self.encryption_key),
+            '0123456789')
+
+    def test_decode_aes256_ecb_base64_decodes_a_long_string(self):
+        self.assertEqual(Parser.decode_aes256_ecb_base64(
+            'BNhd3Q3ZVODxk9c0C788NUPTIfYnZuxXfkghtMJ8jVM=', self.encryption_key),
+            'All your base are belong to us')
+
+    def test_decode_aes256_cbc_plain_decodes_a_blank_string(self):
+        self.assertEqual(Parser.decode_aes256_cbc_plain(
+            ''.decode('base64'), self.encryption_key),
+            '')
+
+    def test_decode_aes256_cbc_plain_decodes_a_short_string(self):
+        self.assertEqual(Parser.decode_aes256_cbc_plain(
+            'IQ+hiIy0vGG4srsHmXChe3ehWc/rYPnfiyqOG8h78DdX'.decode('base64'), self.encryption_key),
+            '0123456789')
+
+    def test_decode_aes256_cbc_plain_decodes_a_long_string(self):
+        self.assertEqual(Parser.decode_aes256_cbc_plain(
+            'IcokDWmjOkKtLpZehWKL6666Uj6fNXPpX6lLWlou+1Lrwb+D3ymP6BAwd6C0TB3hSA=='.decode('base64'), self.encryption_key),
+            'All your base are belong to us')
+
+    def test_decode_aes256_cbc_base64_decodes_a_blank_string(self):
+        self.assertEqual(Parser.decode_aes256_cbc_base64(
+            '', self.encryption_key),
+            '')
+
+    def test_decode_aes256_cbc_base64_decodes_a_short_string(self):
+        self.assertEqual(Parser.decode_aes256_cbc_base64(
+            '!6TZb9bbrqpocMaNgFjrhjw==|f7RcJ7UowesqGk+um+P5ug==', self.encryption_key),
+            '0123456789')
+
+    def test_decode_aes256_cbc_base64_decodes_a_long_string(self):
+        self.assertEqual(Parser.decode_aes256_cbc_base64(
+            '!YFuiAVZgOD2K+s6y8yaMOw==|TZ1+if9ofqRKTatyUaOnfudletslMJ/RZyUwJuR/+aI=', self.encryption_key),
+            'All your base are belong to us')

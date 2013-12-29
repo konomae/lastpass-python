@@ -1,10 +1,149 @@
 # coding: utf-8
 import unittest
+import mock
+import lastpass
+from lastpass.blob import Blob
 from lastpass.fetcher import Fetcher
+from lastpass.session import Session
 
 
-class FetcherTest(unittest.TestCase):
-    def test_make_key(self):
+class FetcherTestCase(unittest.TestCase):
+    def setUp(self):
+        self.username = 'username'
+        self.password = 'password'
+        self.key_iteration_count = 5000
+        self.hash = '7880a04588cfab954aa1a2da98fd9c0d2c6eba4c53e36a94510e6dbf30759256'
+        self.session_id = '53ru,Hb713QnEVM5zWZ16jMvxS0'
+        self.session = Session(self.session_id, self.key_iteration_count)
+        self.blob_response = 'TFBBVgAAAAMxMjJQUkVNAAAACjE0MTQ5'
+        self.blob_bytes = self.blob_response.decode('base64')
+        self.blob = Blob(self.blob_bytes, self.key_iteration_count)
+
+        self.login_post_data = {'method': 'mobile',
+                                'web': 1,
+                                'xml': 1,
+                                'username': self.username,
+                                'hash': self.hash,
+                                'iterations': self.key_iteration_count}
+
+        self.google_authenticator_code = '12345'
+        self.yubikey_password = 'emdbwzemyisymdnevznyqhqnklaqheaxszzvtnxjrmkb'
+
+        self.login_post_data_with_google_authenticator_code = self.login_post_data.copy()
+        self.login_post_data_with_google_authenticator_code['otp'] = self.google_authenticator_code
+
+        self.login_post_data_with_yubikey_password = self.login_post_data.copy()
+        self.login_post_data_with_yubikey_password['otp'] = self.yubikey_password
+
+    def test_request_iteration_count_makes_a_post_request(self):
+        m = mock.Mock()
+        m.post.return_value = self._http_ok(str(self.key_iteration_count))
+        Fetcher.request_iteration_count(self.username, m)
+        m.post.assert_called_with('https://lastpass.com/iterations.php', data={'email': self.username})
+
+    def test_request_iteration_count_returns_key_iteration_count(self):
+        m = mock.Mock()
+        m.post.return_value = self._http_ok(str(self.key_iteration_count))
+        self.assertEqual(Fetcher.request_iteration_count(self.username, m), self.key_iteration_count)
+
+    def test_request_iteration_count_raises_an_exception_on_http_error(self):
+        m = mock.Mock()
+        m.post.return_value = self._http_error()
+        self.assertRaises(lastpass.NetworkError, Fetcher.request_iteration_count, self.username, m)
+
+    def test_request_iteration_count_raises_an_exception_on_invalid_key_iteration_count(self):
+        m = mock.Mock()
+        m.post.return_value = self._http_ok('not a number')
+        self.assertRaises(lastpass.InvalidResponseError, Fetcher.request_iteration_count, self.username, m)
+
+    def test_request_iteration_count_raises_an_exception_on_zero_key_iteration_cont(self):
+        m = mock.Mock()
+        m.post.return_value = self._http_ok('0')
+        self.assertRaises(lastpass.InvalidResponseError, Fetcher.request_iteration_count, self.username, m)
+
+    def test_request_iteration_count_raises_an_exception_on_negative_key_iteration_cont(self):
+        m = mock.Mock()
+        m.post.return_value = self._http_ok('-1')
+        self.assertRaises(lastpass.InvalidResponseError, Fetcher.request_iteration_count, self.username, m)
+
+    def test_request_login_makes_a_post_request(self):
+        self._verify_request_login_post_request(None, self.login_post_data)
+
+    def test_request_login_makes_a_post_request_with_google_authenticator_code(self):
+        self._verify_request_login_post_request(self.google_authenticator_code,
+                                                self.login_post_data_with_google_authenticator_code)
+
+    def test_request_login_makes_a_post_request_with_yubikey_password(self):
+        self._verify_request_login_post_request(self.yubikey_password,
+                                                self.login_post_data_with_yubikey_password)
+
+    def test_request_login_returns_a_session(self):
+        self.assertEqual(self._request_login_with_xml('<ok sessionid="{}" />'.format(self.session_id)), self.session)
+
+    def test_request_login_raises_an_exception_on_http_error(self):
+        self.assertRaises(lastpass.NetworkError, self._request_login_with_error)
+
+    def test_request_login_raises_an_exception_when_response_is_not_a_hash(self):
+        self.assertRaises(lastpass.InvalidResponseError, self._request_login_with_ok, 'not a hash')
+
+    def test_request_login_raises_an_exception_on_unknown_response_schema_1(self):
+        self.assertRaises(lastpass.UnknownResponseSchemaError, self._request_login_with_xml, '<unknown />')
+
+    def test_request_login_raises_an_exception_on_unknown_response_schema_2(self):
+        self.assertRaises(lastpass.UnknownResponseSchemaError, self._request_login_with_xml, '<response />')
+
+    def test_request_login_raises_an_exception_on_unknown_response_schema_3(self):
+        self.assertRaises(lastpass.UnknownResponseSchemaError,
+                          self._request_login_with_xml, '<response><error /></response>')
+
+    def test_request_login_raises_an_exception_on_unknown_username(self):
+        self.assertRaises(lastpass.LastPassUnknownUsernameError,
+                          self._request_login_with_lastpass_error, 'unknownemail')
+
+    def test_request_login_raises_an_exception_on_invalid_password(self):
+        self.assertRaises(lastpass.LastPassInvalidPasswordError,
+                          self._request_login_with_lastpass_error, 'unknownpassword')
+
+    def test_request_login_raises_an_exception_on_missing_google_authenticator_code(self):
+        message = 'Google Authenticator authentication required! ' \
+                  'Upgrade your browser extension so you can enter it.'
+        self.assertRaises(lastpass.LastPassIncorrectGoogleAuthenticatorCodeError,
+                          self._request_login_with_lastpass_error, 'googleauthrequired', message)
+
+    def test_request_login_raises_an_exception_on_incorrect_google_authenticator_code(self):
+        message = 'Google Authenticator authentication failed!'
+        self.assertRaises(lastpass.LastPassIncorrectGoogleAuthenticatorCodeError,
+                          self._request_login_with_lastpass_error, 'googleauthfailed', message)
+
+    def test_request_login_raises_an_exception_on_missing_or_incorrect_yubikey_password(self):
+        message = 'Your account settings have restricted you from logging in ' \
+                  'from mobile devices that do not support YubiKey authentication.'
+        self.assertRaises(lastpass.LastPassIncorrectYubikeyPasswordError,
+                          self._request_login_with_lastpass_error, 'yubikeyrestricted', message)
+
+    def test_request_login_raises_an_exception_on_unknown_lastpass_error_without_a_message(self):
+        cause = 'Unknown cause'
+        self.assertRaises(lastpass.LastPassUnknownError,
+                          self._request_login_with_lastpass_error, cause)
+
+    def test_fetch_makes_a_get_request(self):
+        m = mock.Mock()
+        m.get.return_value = self._http_ok(self.blob_response)
+        Fetcher.fetch(self.session, m)
+        m.get.assert_called_with('https://lastpass.com/getaccts.php?mobile=1&b64=1&hash=0.0',
+                                 cookies={'PHPSESSID': self.session_id})
+
+    def test_fetch_returns_a_blob(self):
+        m = mock.Mock()
+        m.get.return_value = self._http_ok(self.blob_response)
+        self.assertEqual(Fetcher.fetch(self.session, m), self.blob)
+
+    def test_fetch_raises_exception_on_http_error(self):
+        m = mock.Mock()
+        m.get.return_value = self._http_error()
+        self.assertRaises(lastpass.NetworkError, Fetcher.fetch, self.session, m)
+
+    def test_make_key_generates_correct_keys(self):
         keys = [
             (1, 'C/Bh2SGWxI8JDu54DbbpV8J9wa6pKbesIb9MAXkeF3Y='.decode('base64')),
             (5, 'pE9goazSCRqnWwcixWM4NHJjWMvB5T15dMhe6ug1pZg='.decode('base64')),
@@ -16,7 +155,7 @@ class FetcherTest(unittest.TestCase):
         ]
 
         for iterations, key in keys:
-            assert key == Fetcher.make_key('postlass@gmail.com', 'pl1234567890', iterations=iterations)
+            self.assertEqual(key, Fetcher.make_key('postlass@gmail.com', 'pl1234567890', iterations))
 
     def test_make_hash(self):
         hashes = [
@@ -30,10 +169,46 @@ class FetcherTest(unittest.TestCase):
         ]
 
         for iterations, hash in hashes:
-            assert hash == Fetcher.make_hash('postlass@gmail.com', 'pl1234567890', iterations)
+            self.assertEqual(hash, Fetcher.make_hash('postlass@gmail.com', 'pl1234567890', iterations))
 
-    def _test_fetch(self):
-        fetcher = Fetcher.fetch('postlass@gmail.com', 'pl1234567890')
-        assert 'OfOUvVnQzB4v49sNh4+PdwIFb9Fr5+jVfWRTf+E2Ghg='.decode('base64') == fetcher.encryption_key
-        assert 500, fetcher.iterations
-        assert fetcher.blob.startswith('TFBB')
+    def _verify_request_login_post_request(self, multifactor_password, post_data):
+        m = mock.Mock()
+        m.post.return_value = self._http_ok('<ok sessionid="{}" />'.format(self.session_id))
+        Fetcher.request_login(self.username, self.password, self.key_iteration_count, multifactor_password, m)
+        m.post.assert_called_with('https://lastpass.com/login.php', data=post_data)
+
+    @staticmethod
+    def _mock_response(code, body):
+        m = mock.Mock()
+        m.status_code = code
+        m.content = body
+        return m
+
+    def _http_ok(self, body):
+        return self._mock_response(200, body)
+
+    def _http_error(self, body=''):
+        return self._mock_response(404, body)
+
+    @staticmethod
+    def _lastpass_error(cause, message):
+        if message:
+            return '<response><error cause="{}" message="{}" /></response>'.format(cause, message)
+        return '<response><error cause="{}" /></response>'.format(cause)
+
+    def _request_login_with_lastpass_error(self, cause, message=None):
+        return self._request_login_with_xml(self._lastpass_error(cause, message))
+
+    def _request_login_with_xml(self, text):
+        return self._request_login_with_ok(text)
+
+    def _request_login_with_ok(self, response):
+        return self._request_login_with_response(self._http_ok(response))
+
+    def _request_login_with_error(self):
+        return self._request_login_with_response(self._http_error())
+
+    def _request_login_with_response(self, response):
+        m = mock.Mock()
+        m.post.return_value = response
+        return Fetcher.request_login(self.username, self.password, self.key_iteration_count, None, m)

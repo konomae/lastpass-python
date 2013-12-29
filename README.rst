@@ -14,12 +14,11 @@ Example
 ::
 
     # coding: utf-8
-    from lastpass import Fetcher, Parser
+    import lastpass
 
-    fetcher = Fetcher.fetch('username', 'password')
-    parser = Parser.parse(fetcher.blob, fetcher.encryption_key)
-    accounts = parser.chunks['ACCT']
-    print accounts
+    vault = lastpass.Vault.open_remote(username, password)
+    for i in vault.accounts:
+        print i.id, i.username, i.password, i.url
 
 
 License

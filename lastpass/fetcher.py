@@ -5,8 +5,8 @@ import hashlib
 import requests
 #from lxml import etree
 from xml.etree import ElementTree as etree
-from lastpass.blob import Blob
-from lastpass.exceptions import (
+import blob 
+from exceptions import (
     NetworkError,
     InvalidResponseError,
     UnknownResponseSchemaError,
@@ -16,7 +16,7 @@ from lastpass.exceptions import (
     LastPassIncorrectYubikeyPasswordError,
     LastPassUnknownError
 )
-from lastpass.session import Session
+from session import Session
 
 
 class Fetcher(object):
@@ -33,7 +33,7 @@ class Fetcher(object):
         if response.status_code != httplib.OK:
             raise NetworkError()
 
-        return Blob(cls.decode_blob(response.content), session.key_iteration_count)
+        return blob.Blob(cls.decode_blob(response.content), session.key_iteration_count)
 
     @classmethod
     def request_iteration_count(cls, username, web_client=requests):

@@ -26,4 +26,4 @@ except lastpass.LastPassIncorrectYubikeyPasswordError as e:
 
 
 for index, i in enumerate(vault.accounts):
-    print index+1, i.id, i.name, i.username, i.password, i.url, i.group
+    print("{} {} {} {} {} {} {}".format(index + 1, i.id, i.name, i.username, i.password, i.url, i.group))

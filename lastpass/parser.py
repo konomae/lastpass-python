@@ -1,11 +1,11 @@
 # coding: utf-8
-from StringIO import StringIO
+from io import StringIO
 from collections import OrderedDict
 from chunk import Chunk
 import struct
 
 from Crypto.Cipher import AES
-from account import Account
+from lastpass.account import Account
 
 
 class Parser(object):

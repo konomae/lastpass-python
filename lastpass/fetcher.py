@@ -5,8 +5,8 @@ from Crypto.Protocol.KDF import PBKDF2
 import requests
 #from lxml import etree
 from xml.etree import ElementTree as etree
-import blob 
-from exceptions import (
+from . import blob
+from .exceptions import (
     NetworkError,
     InvalidResponseError,
     UnknownResponseSchemaError,
@@ -16,7 +16,7 @@ from exceptions import (
     LastPassIncorrectYubikeyPasswordError,
     LastPassUnknownError
 )
-from session import Session
+from .session import Session
 
 
 class Fetcher(object):

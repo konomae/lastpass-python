@@ -5,7 +5,7 @@ from chunk import Chunk
 import struct
 
 from Crypto.Cipher import AES
-from account import Account
+from .account import Account
 
 
 class Parser(object):

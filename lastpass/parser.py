@@ -2,11 +2,11 @@
 from base64 import b64decode
 from io import BytesIO
 from collections import OrderedDict
-from chunk import Chunk
 import struct
 
 from Crypto.Cipher import AES
 from .account import Account
+from .chunk import Chunk
 
 
 class Parser(object):

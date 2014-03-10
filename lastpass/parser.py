@@ -1,5 +1,6 @@
 # coding: utf-8
 from StringIO import StringIO
+from base64 import b64decode
 from collections import OrderedDict
 from chunk import Chunk
 import struct
@@ -96,7 +97,7 @@ class Parser(object):
     # Decodes a base64 encoded string into raw bytes.
     @classmethod
     def decode_base64(cls, data):
-        return data.decode('base64')
+        return b64decode(data)
 
     # Guesses AES encoding/cipher from the length of the data.
     # Possible combinations are:

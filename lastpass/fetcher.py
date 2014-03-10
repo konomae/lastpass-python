@@ -1,5 +1,6 @@
 # coding: utf-8
 import hashlib
+from base64 import b64decode
 from Crypto.Hash import HMAC, SHA256
 from Crypto.Protocol.KDF import PBKDF2
 import requests
@@ -114,7 +115,7 @@ class Fetcher(object):
 
     @classmethod
     def decode_blob(cls, blob):
-        return blob.decode('base64')
+        return b64decode(blob)
 
     @classmethod
     def make_key(cls, username, password, key_iteration_count):

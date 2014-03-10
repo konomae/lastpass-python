@@ -1,4 +1,5 @@
 # coding: utf-8
+from base64 import b64decode
 import unittest
 from StringIO import StringIO
 from lastpass.blob import Blob
@@ -12,7 +13,7 @@ class ParserTestCase(unittest.TestCase):
         self.key_iteration_count = 5000
         self.blob = Blob(TEST_BLOB, self.key_iteration_count)
         self.padding = 'BEEFFACE'
-        self.encryption_key = 'OfOUvVnQzB4v49sNh4+PdwIFb9Fr5+jVfWRTf+E2Ghg='.decode('base64')
+        self.encryption_key = b64decode('OfOUvVnQzB4v49sNh4+PdwIFb9Fr5+jVfWRTf+E2Ghg=')
 
         self.chunks = Parser.extract_chunks(self.blob)
         self.accounts = [Parser.parse_account(i, self.encryption_key) for i in self.chunks['ACCT']]
@@ -100,7 +101,7 @@ class ParserTestCase(unittest.TestCase):
 
     def test_decode_aes256_auto_decodes_ecb_plain_string(self):
         self.assertEqual(Parser.decode_aes256_auto(
-            'BNhd3Q3ZVODxk9c0C788NUPTIfYnZuxXfkghtMJ8jVM='.decode('base64'), self.encryption_key),
+            b64decode('BNhd3Q3ZVODxk9c0C788NUPTIfYnZuxXfkghtMJ8jVM='), self.encryption_key),
             'All your base are belong to us')
 
     def test_decode_aes256_auto_decodes_ecb_base64_string(self):
@@ -110,7 +111,7 @@ class ParserTestCase(unittest.TestCase):
 
     def test_decode_aes256_auto_decodes_cbc_plain_string(self):
         self.assertEqual(Parser.decode_aes256_auto(
-            'IcokDWmjOkKtLpZehWKL6666Uj6fNXPpX6lLWlou+1Lrwb+D3ymP6BAwd6C0TB3hSA=='.decode('base64'), self.encryption_key),
+            b64decode('IcokDWmjOkKtLpZehWKL6666Uj6fNXPpX6lLWlou+1Lrwb+D3ymP6BAwd6C0TB3hSA=='), self.encryption_key),
             'All your base are belong to us')
 
     def test_decode_aes256_auto_decodes_cbc_base64_string(self):
@@ -120,17 +121,17 @@ class ParserTestCase(unittest.TestCase):
 
     def test_decode_aes256_ecb_plain_decodes_a_blank_string(self):
         self.assertEqual(Parser.decode_aes256_ecb_plain(
-            ''.decode('base64'), self.encryption_key),
+            b64decode(''), self.encryption_key),
             '')
 
     def test_decode_aes256_ecb_plain_decodes_a_short_string(self):
         self.assertEqual(Parser.decode_aes256_ecb_plain(
-            '8mHxIA8rul6eq72a/Gq2iw=='.decode('base64'), self.encryption_key),
+            b64decode('8mHxIA8rul6eq72a/Gq2iw=='), self.encryption_key),
             '0123456789')
 
     def test_decode_aes256_ecb_plain_decodes_a_long_string(self):
         self.assertEqual(Parser.decode_aes256_ecb_plain(
-            'BNhd3Q3ZVODxk9c0C788NUPTIfYnZuxXfkghtMJ8jVM='.decode('base64'), self.encryption_key),
+            b64decode('BNhd3Q3ZVODxk9c0C788NUPTIfYnZuxXfkghtMJ8jVM='), self.encryption_key),
             'All your base are belong to us')
 
     def test_decode_aes256_ecb_base64_decodes_a_blank_string(self):
@@ -150,17 +151,17 @@ class ParserTestCase(unittest.TestCase):
 
     def test_decode_aes256_cbc_plain_decodes_a_blank_string(self):
         self.assertEqual(Parser.decode_aes256_cbc_plain(
-            ''.decode('base64'), self.encryption_key),
+            b64decode(''), self.encryption_key),
             '')
 
     def test_decode_aes256_cbc_plain_decodes_a_short_string(self):
         self.assertEqual(Parser.decode_aes256_cbc_plain(
-            'IQ+hiIy0vGG4srsHmXChe3ehWc/rYPnfiyqOG8h78DdX'.decode('base64'), self.encryption_key),
+            b64decode('IQ+hiIy0vGG4srsHmXChe3ehWc/rYPnfiyqOG8h78DdX'), self.encryption_key),
             '0123456789')
 
     def test_decode_aes256_cbc_plain_decodes_a_long_string(self):
         self.assertEqual(Parser.decode_aes256_cbc_plain(
-            'IcokDWmjOkKtLpZehWKL6666Uj6fNXPpX6lLWlou+1Lrwb+D3ymP6BAwd6C0TB3hSA=='.decode('base64'), self.encryption_key),
+            b64decode('IcokDWmjOkKtLpZehWKL6666Uj6fNXPpX6lLWlou+1Lrwb+D3ymP6BAwd6C0TB3hSA=='), self.encryption_key),
             'All your base are belong to us')
 
     def test_decode_aes256_cbc_base64_decodes_a_blank_string(self):

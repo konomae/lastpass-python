@@ -1,4 +1,5 @@
 # coding: utf-8
+from base64 import b64decode
 import unittest
 import mock
 import lastpass
@@ -16,7 +17,7 @@ class FetcherTestCase(unittest.TestCase):
         self.session_id = '53ru,Hb713QnEVM5zWZ16jMvxS0'
         self.session = Session(self.session_id, self.key_iteration_count)
         self.blob_response = 'TFBBVgAAAAMxMjJQUkVNAAAACjE0MTQ5'
-        self.blob_bytes = self.blob_response.decode('base64')
+        self.blob_bytes = b64decode(self.blob_response)
         self.blob = Blob(self.blob_bytes, self.key_iteration_count)
 
         self.login_post_data = {'method': 'mobile',
@@ -145,13 +146,13 @@ class FetcherTestCase(unittest.TestCase):
 
     def test_make_key_generates_correct_keys(self):
         keys = [
-            (1, 'C/Bh2SGWxI8JDu54DbbpV8J9wa6pKbesIb9MAXkeF3Y='.decode('base64')),
-            (5, 'pE9goazSCRqnWwcixWM4NHJjWMvB5T15dMhe6ug1pZg='.decode('base64')),
-            (10, 'n9S0SyJdrMegeBHtkxUx8Lzc7wI6aGl+y3/udGmVey8='.decode('base64')),
-            (50, 'GwI8/kNy1NjIfe3Z0VAZfF78938UVuCi6xAL3MJBux0='.decode('base64')),
-            (100, 'piGdSULeHMWiBS3QJNM46M5PIYwQXA6cNS10pLB3Xf8='.decode('base64')),
-            (500, 'OfOUvVnQzB4v49sNh4+PdwIFb9Fr5+jVfWRTf+E2Ghg='.decode('base64')),
-            (1000, 'z7CdwlIkbu0XvcB7oQIpnlqwNGemdrGTBmDKnL9taPg='.decode('base64')),
+            (1, b64decode('C/Bh2SGWxI8JDu54DbbpV8J9wa6pKbesIb9MAXkeF3Y=')),
+            (5, b64decode('pE9goazSCRqnWwcixWM4NHJjWMvB5T15dMhe6ug1pZg=')),
+            (10, b64decode('n9S0SyJdrMegeBHtkxUx8Lzc7wI6aGl+y3/udGmVey8=')),
+            (50, b64decode('GwI8/kNy1NjIfe3Z0VAZfF78938UVuCi6xAL3MJBux0=')),
+            (100, b64decode('piGdSULeHMWiBS3QJNM46M5PIYwQXA6cNS10pLB3Xf8=')),
+            (500, b64decode('OfOUvVnQzB4v49sNh4+PdwIFb9Fr5+jVfWRTf+E2Ghg=')),
+            (1000, b64decode('z7CdwlIkbu0XvcB7oQIpnlqwNGemdrGTBmDKnL9taPg=')),
         ]
 
         for iterations, key in keys:

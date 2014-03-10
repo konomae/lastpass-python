@@ -1,6 +1,7 @@
 # coding: utf-8
 import hashlib
 from base64 import b64decode
+from binascii import hexlify
 from Crypto.Hash import HMAC, SHA256
 from Crypto.Protocol.KDF import PBKDF2
 import requests
@@ -89,7 +90,7 @@ class Fetcher(object):
     def create_session(cls, parsed_response, key_iteration_count):
         if parsed_response.tag == 'ok':
             session_id = parsed_response.attrib.get('sessionid')
-            if isinstance(session_id, basestring):
+            if isinstance(session_id, str):
                 return Session(session_id, key_iteration_count)
 
     @classmethod
@@ -120,21 +121,21 @@ class Fetcher(object):
     @classmethod
     def make_key(cls, username, password, key_iteration_count):
         if key_iteration_count == 1:
-            return hashlib.sha256(username + password).digest()
+            return hashlib.sha256(username.encode() + password.encode()).digest()
         else:
             prf = lambda p, s: HMAC.new(p, s, SHA256).digest()
-            return PBKDF2(password, username, 32, key_iteration_count, prf)
+            return PBKDF2(password.encode(), username.encode(), 32, key_iteration_count, prf)
 
     @classmethod
     def make_hash(cls, username, password, key_iteration_count):
         if key_iteration_count == 1:
-            return hashlib.sha256(cls.make_key(username, password, 1).encode('hex') + password).hexdigest()
+            return bytearray(hashlib.sha256(hexlify(cls.make_key(username, password, 1)) + password.encode()).hexdigest(), 'ascii')
         else:
             prf = lambda p, s: HMAC.new(p, s, SHA256).digest()
-            return PBKDF2(
+            return hexlify(PBKDF2(
                 cls.make_key(username, password, key_iteration_count),
-                password,
+                password.encode(),
                 32,
                 1,
-                prf).encode('hex')
+                prf))
 

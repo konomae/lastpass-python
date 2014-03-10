@@ -1,5 +1,4 @@
 # coding: utf-8
-import httplib
 import hashlib
 from Crypto.Hash import HMAC, SHA256
 from Crypto.Protocol.KDF import PBKDF2
@@ -31,7 +30,7 @@ class Fetcher(object):
         response = web_client.get('https://lastpass.com/getaccts.php?mobile=1&b64=1&hash=0.0',
                                   cookies={'PHPSESSID': session.id})
 
-        if response.status_code != httplib.OK:
+        if response.status_code != requests.codes.ok:
             raise NetworkError()
 
         return blob.Blob(cls.decode_blob(response.content), session.key_iteration_count)
@@ -40,7 +39,7 @@ class Fetcher(object):
     def request_iteration_count(cls, username, web_client=requests):
         response = web_client.post('https://lastpass.com/iterations.php',
                                    data={'email': username})
-        if response.status_code != httplib.OK:
+        if response.status_code != requests.codes.ok:
             raise NetworkError()
 
         try:
@@ -69,7 +68,7 @@ class Fetcher(object):
         response = web_client.post('https://lastpass.com/login.php',
                                    data=body)
 
-        if response.status_code != httplib.OK:
+        if response.status_code != requests.codes.ok:
             raise NetworkError()
 
         try:

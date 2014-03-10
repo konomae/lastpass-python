@@ -1,7 +1,8 @@
 # coding: utf-8
 import httplib
-import pbkdf2
 import hashlib
+from Crypto.Hash import HMAC, SHA256
+from Crypto.Protocol.KDF import PBKDF2
 import requests
 #from lxml import etree
 from xml.etree import ElementTree as etree
@@ -121,17 +122,19 @@ class Fetcher(object):
         if key_iteration_count == 1:
             return hashlib.sha256(username + password).digest()
         else:
-            return pbkdf2.pbkdf2_bin(password, username, key_iteration_count, 32, hashlib.sha256)
+            prf = lambda p, s: HMAC.new(p, s, SHA256).digest()
+            return PBKDF2(password, username, 32, key_iteration_count, prf)
 
     @classmethod
     def make_hash(cls, username, password, key_iteration_count):
         if key_iteration_count == 1:
             return hashlib.sha256(cls.make_key(username, password, 1).encode('hex') + password).hexdigest()
         else:
-            return pbkdf2.pbkdf2_hex(
+            prf = lambda p, s: HMAC.new(p, s, SHA256).digest()
+            return PBKDF2(
                 cls.make_key(username, password, key_iteration_count),
                 password,
-                1,
                 32,
-                hashlib.sha256)
+                1,
+                prf).encode('hex')
 

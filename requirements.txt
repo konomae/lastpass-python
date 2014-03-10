@@ -1,4 +1,3 @@
 requests==1.1.0
-simple-pbkdf2==1.0
 pycrypto==2.6.1
 mock==1.0.1

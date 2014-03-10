@@ -1,6 +1,6 @@
 # coding: utf-8
-from StringIO import StringIO
 from base64 import b64decode
+from io import BytesIO
 from collections import OrderedDict
 from chunk import Chunk
 import struct
@@ -14,8 +14,12 @@ class Parser(object):
     @classmethod
     def extract_chunks(cls, blob):
         chunks = OrderedDict()
-        stream = StringIO(blob.bytes)
-        while stream.pos < stream.len:
+        stream = BytesIO(blob.bytes)
+        current_pos = stream.tell()
+        stream.seek(0, 2)
+        length = stream.tell()
+        stream.seek(current_pos, 0)
+        while stream.tell() < length:
             chunk = cls.read_chunk(stream)
             if not chunks.get(chunk.id):
                 chunks[chunk.id] = []
@@ -27,7 +31,7 @@ class Parser(object):
     # TODO: See if this should be part of Account class.
     @classmethod
     def parse_account(cls, chunk, encryption_key):
-        io = StringIO(chunk.payload)
+        io = BytesIO(chunk.payload)
         id = cls.read_item(io)
         name = cls.decode_aes256_auto(cls.read_item(io), encryption_key)
         group = cls.decode_aes256_auto(cls.read_item(io), encryption_key)

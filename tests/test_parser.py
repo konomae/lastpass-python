@@ -1,7 +1,7 @@
 # coding: utf-8
 from base64 import b64decode
 import unittest
-from StringIO import StringIO
+from io import BytesIO
 from lastpass.blob import Blob
 from lastpass.chunk import Chunk
 from lastpass.parser import Parser
@@ -37,44 +37,44 @@ class ParserTestCase(unittest.TestCase):
         self.assertListEqual([a.id for a in self.accounts], [a.id for a in TEST_ACCOUNTS])
 
     def test_read_chunk_returns_a_chunk(self):
-        io = StringIO(('4142434400000004DEADBEEF' + self.padding).decode('hex'))
+        io = BytesIO(('4142434400000004DEADBEEF' + self.padding).decode('hex'))
         self.assertEqual(Parser.read_chunk(io), Chunk('ABCD', 'DEADBEEF'.decode('hex')))
-        self.assertEqual(io.pos, 12)
+        self.assertEqual(io.tell(), 12)
 
     def test_read_item_returns_an_item(self):
-        io = StringIO(('00000004DEADBEEF' + self.padding).decode('hex'))
+        io = BytesIO(('00000004DEADBEEF' + self.padding).decode('hex'))
         self.assertEqual(Parser.read_item(io), 'DEADBEEF'.decode('hex'))
-        self.assertEqual(io.pos, 8)
+        self.assertEqual(io.tell(), 8)
 
     def test_skip_item_skips_an_empty_item(self):
-        io = StringIO(('00000000' + self.padding).decode('hex'))
+        io = BytesIO(('00000000' + self.padding).decode('hex'))
         Parser.skip_item(io)
-        self.assertEqual(io.pos, 4)
+        self.assertEqual(io.tell(), 4)
 
     def test_skip_item_skips_a_non_empty_item(self):
-        io = StringIO(('00000004DEADBEEF' + self.padding).decode('hex'))
+        io = BytesIO(('00000004DEADBEEF' + self.padding).decode('hex'))
         Parser.skip_item(io)
-        self.assertEqual(io.pos, 8)
+        self.assertEqual(io.tell(), 8)
 
     def test_read_id_returns_an_id(self):
-        io = StringIO('ABCD' + self.padding)
+        io = BytesIO('ABCD' + self.padding)
         self.assertEqual(Parser.read_id(io), 'ABCD')
-        self.assertEqual(io.pos, 4)
+        self.assertEqual(io.tell(), 4)
 
     def test_read_size_returns_a_size(self):
-        io = StringIO(('DEADBEEF' + self.padding).decode('hex'))
+        io = BytesIO(('DEADBEEF' + self.padding).decode('hex'))
         self.assertEqual(Parser.read_size(io), 0xDEADBEEF)
-        self.assertEqual(io.pos, 4)
+        self.assertEqual(io.tell(), 4)
 
     def test_read_payload_returns_a_payload(self):
-        io = StringIO(('FEEDDEADBEEF' + self.padding).decode('hex'))
+        io = BytesIO(('FEEDDEADBEEF' + self.padding).decode('hex'))
         self.assertEqual(Parser.read_payload(io, 6), 'FEEDDEADBEEF'.decode('hex'))
-        self.assertEqual(io.pos, 6)
+        self.assertEqual(io.tell(), 6)
 
     def test_read_uint32_returns_a_number(self):
-        io = StringIO(('DEADBEEF' + self.padding).decode('hex'))
+        io = BytesIO(('DEADBEEF' + self.padding).decode('hex'))
         self.assertEqual(Parser.read_size(io), 0xDEADBEEF)
-        self.assertEqual(io.pos, 4)
+        self.assertEqual(io.tell(), 4)
 
     def test_decode_hex_decodes_hex(self):
         self.assertEqual(Parser.decode_hex(''), '')

@@ -1,5 +1,5 @@
-from .fetcher import Fetcher
-from .parser import Parser
+from lastpass.fetcher import Fetcher
+from lastpass.parser import Parser
 
-from .vault import Vault
-from .exceptions import *
+from lastpass.vault import Vault
+from lastpass.exceptions import *

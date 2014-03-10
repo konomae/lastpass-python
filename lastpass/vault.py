@@ -1,5 +1,8 @@
 # coding: utf-8
-import parser, fetcher
+from lastpass import fetcher
+
+from lastpass.parser import Parser
+
 
 
 class Vault(object):
@@ -26,5 +29,5 @@ class Vault(object):
 
     # This more of an internal method, use one of the static constructors instead
     def __init__(self, blob, encryption_key):
-        chunks = parser.Parser.extract_chunks(blob)
-        self.accounts = [parser.Parser.parse_account(i, encryption_key) for i in chunks['ACCT']]
+        chunks = Parser.extract_chunks(blob)
+        self.accounts = [Parser.parse_account(i, encryption_key) for i in chunks['ACCT']]

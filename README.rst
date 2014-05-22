@@ -14,7 +14,7 @@ LastPass Python API
 Example
 -------
 
-::
+.. code-block:: python
 
     # coding: utf-8
     import lastpass

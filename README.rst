@@ -21,7 +21,7 @@ Example
 
     vault = lastpass.Vault.open_remote(username, password)
     for i in vault.accounts:
-        print i.id, i.username, i.password, i.url
+        print(i.id, i.username, i.password, i.url)
 
 
 License

@@ -1,15 +1,16 @@
 # coding: utf-8
+from base64 import b64decode
 import unittest
 from lastpass.blob import Blob
 
 
 class BlobTestCase(unittest.TestCase):
     def setUp(self):
-        self.bytes = 'TFBBVgAAAAMxMjJQUkVNAAAACjE0MTQ5'.decode('base64')
+        self.bytes = b64decode('TFBBVgAAAAMxMjJQUkVNAAAACjE0MTQ5')
         self.key_iteration_count = 500
         self.username = 'postlass@gmail.com'
         self.password = 'pl1234567890'
-        self.encryption_key = 'OfOUvVnQzB4v49sNh4+PdwIFb9Fr5+jVfWRTf+E2Ghg='.decode('base64')
+        self.encryption_key = b64decode('OfOUvVnQzB4v49sNh4+PdwIFb9Fr5+jVfWRTf+E2Ghg=')
 
         self.blob = Blob(self.bytes, self.key_iteration_count)
 

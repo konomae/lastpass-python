@@ -1,11 +1,14 @@
 # coding: utf-8
-from StringIO import StringIO
+from base64 import b64decode
+import binascii
+import codecs
+from io import BytesIO
 from collections import OrderedDict
-from chunk import Chunk
 import struct
 
 from Crypto.Cipher import AES
-from account import Account
+from .account import Account
+from .chunk import Chunk
 
 
 class Parser(object):
@@ -13,8 +16,12 @@ class Parser(object):
     @classmethod
     def extract_chunks(cls, blob):
         chunks = OrderedDict()
-        stream = StringIO(blob.bytes)
-        while stream.pos < stream.len:
+        stream = BytesIO(blob.bytes)
+        current_pos = stream.tell()
+        stream.seek(0, 2)
+        length = stream.tell()
+        stream.seek(current_pos, 0)
+        while stream.tell() < length:
             chunk = cls.read_chunk(stream)
             if not chunks.get(chunk.id):
                 chunks[chunk.id] = []
@@ -26,7 +33,7 @@ class Parser(object):
     # TODO: See if this should be part of Account class.
     @classmethod
     def parse_account(cls, chunk, encryption_key):
-        io = StringIO(chunk.payload)
+        io = BytesIO(chunk.payload)
         id = cls.read_item(io)
         name = cls.decode_aes256_auto(cls.read_item(io), encryption_key)
         group = cls.decode_aes256_auto(cls.read_item(io), encryption_key)
@@ -91,12 +98,15 @@ class Parser(object):
     # Decodes a hex encoded string into raw bytes.
     @classmethod
     def decode_hex(cls, data):
-        return data.decode('hex')
+        try:
+            return codecs.decode(data, 'hex_codec')
+        except binascii.Error:
+            raise TypeError()
 
     # Decodes a base64 encoded string into raw bytes.
     @classmethod
     def decode_base64(cls, data):
-        return data.decode('base64')
+        return b64decode(data)
 
     # Guesses AES encoding/cipher from the length of the data.
     # Possible combinations are:
@@ -109,7 +119,7 @@ class Parser(object):
         length64 = length % 64
 
         if length == 0:
-            return ''
+            return b''
         elif length16 == 0:
             return cls.decode_aes256_ecb_plain(data, encryption_key)
         elif length64 == 0 or length64 == 24 or length64 == 44:
@@ -125,7 +135,7 @@ class Parser(object):
     @classmethod
     def decode_aes256_ecb_plain(cls, data, encryption_key):
         if not data:
-            return ''
+            return b''
         else:
             return cls.decode_aes256('ecb', '', data, encryption_key)
 
@@ -138,7 +148,7 @@ class Parser(object):
     @classmethod
     def decode_aes256_cbc_plain(cls, data, encryption_key):
         if not data:
-            return ''
+            return b''
         else:
             # LastPass AES-256/CBC encryted string starts with an "!".
             # Next 16 bytes are the IV for the cipher.
@@ -149,7 +159,7 @@ class Parser(object):
     @classmethod
     def decode_aes256_cbc_base64(cls, data, encryption_key):
         if not data:
-            return ''
+            return b''
         else:
             # LastPass AES-256/CBC/base64 encryted string starts with an "!".
             # Next 24 bytes are the base64 encoded IV for the cipher.
@@ -175,5 +185,5 @@ class Parser(object):
         aes = AES.new(encryption_key, aes_mode, iv)
         d = aes.decrypt(data)
         # http://passingcuriosity.com/2009/aes-encryption-in-python-with-m2crypto/
-        unpad = lambda s: s[0:-ord(s[-1])]
+        unpad = lambda s: s[0:-ord(d[-1:])]
         return unpad(d)

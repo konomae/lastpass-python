@@ -1,1 +1,3 @@
+*.pyc
+.coverage
 example/credentials.json

@@ -29,7 +29,7 @@ class Fetcher(object):
 
     @classmethod
     def fetch(cls, session, web_client=requests):
-        response = web_client.get('https://lastpass.com/getaccts.php?mobile=1&b64=1&hash=0.0',
+        response = web_client.get('https://lastpass.com/getaccts.php?mobile=1&b64=1&hash=0.0&hasplugin=3.0.23&requestsrc=android',
                                   cookies={'PHPSESSID': session.id})
 
         if response.status_code != requests.codes.ok:

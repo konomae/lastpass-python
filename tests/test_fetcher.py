@@ -131,7 +131,7 @@ class FetcherTestCase(unittest.TestCase):
         m = mock.Mock()
         m.get.return_value = self._http_ok(self.blob_response)
         Fetcher.fetch(self.session, m)
-        m.get.assert_called_with('https://lastpass.com/getaccts.php?mobile=1&b64=1&hash=0.0',
+        m.get.assert_called_with('https://lastpass.com/getaccts.php?mobile=1&b64=1&hash=0.0&hasplugin=3.0.23&requestsrc=android',
                                  cookies={'PHPSESSID': self.session_id})
 
     def test_fetch_returns_a_blob(self):

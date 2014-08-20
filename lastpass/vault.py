@@ -28,4 +28,4 @@ class Vault(object):
     # This more of an internal method, use one of the static constructors instead
     def __init__(self, blob, encryption_key):
         chunks = Parser.extract_chunks(blob)
-        self.accounts = [Parser.parse_account(i, encryption_key) for i in chunks[b'ACCT']]
+        self.accounts = [Parser.parse_account(i, encryption_key) for i in chunks if i.id == b'ACCT']

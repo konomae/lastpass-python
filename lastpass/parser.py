@@ -15,17 +15,14 @@ class Parser(object):
     # Splits the blob into chucks grouped by kind.
     @classmethod
     def extract_chunks(cls, blob):
-        chunks = OrderedDict()
+        chunks = []
         stream = BytesIO(blob.bytes)
         current_pos = stream.tell()
         stream.seek(0, 2)
         length = stream.tell()
         stream.seek(current_pos, 0)
         while stream.tell() < length:
-            chunk = cls.read_chunk(stream)
-            if not chunks.get(chunk.id):
-                chunks[chunk.id] = []
-            chunks[chunk.id].append(chunk)
+            chunks.append(cls.read_chunk(stream))
 
         return chunks
 

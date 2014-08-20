@@ -17,22 +17,13 @@ class ParserTestCase(unittest.TestCase):
         self.encryption_key = b64decode('OfOUvVnQzB4v49sNh4+PdwIFb9Fr5+jVfWRTf+E2Ghg=')
 
         self.chunks = Parser.extract_chunks(self.blob)
-        self.accounts = [Parser.parse_account(i, self.encryption_key) for i in self.chunks[b'ACCT']]
+        self.accounts = [Parser.parse_account(i, self.encryption_key) for i in self.chunks if i.id == b'ACCT']
 
-    def test_extract_chunks_returns_chunks_as_a_dict(self):
-        self.assertIsInstance(self.chunks, dict)
+    def test_extract_chunks_returns_chunks_as_a_list(self):
+        self.assertIsInstance(self.chunks, list)
 
-    def test_extract_chunks_all_keys_are_strings(self):
-        self.assertListEqual(list(self.chunks.keys()), TEST_CHUNK_IDS)
-
-    def test_extract_chunks_all_values_are_arrays(self):
-        self.assertListEqual(list(set([type(v) for v in self.chunks.values()])), [list])
-
-    def test_extract_chunks_all_arrays_contain_only_chunks(self):
-        self.assertListEqual(list(set([type(c) for v in self.chunks.values() for c in v])), [Chunk])
-
-    def test_extract_chunks_all_chunks_grouped_under_correct_ids(self):
-        self.assertTrue(all([id == c.id for id, chunk_group in self.chunks.items() for c in chunk_group]))
+    def test_extract_chunks_all_values_are_instance_of_chunk(self):
+        self.assertListEqual(list(set([type(v) for v in self.chunks])), [Chunk])
 
     def test_parse_account_parses_account(self):
         self.assertListEqual([a.id for a in self.accounts], [a.id for a in TEST_ACCOUNTS])

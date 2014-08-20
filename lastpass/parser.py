@@ -5,8 +5,11 @@ import codecs
 from io import BytesIO
 from collections import OrderedDict
 import struct
+import re
 
 from Crypto.Cipher import AES
+from Crypto.Util import number
+from Crypto.PublicKey import RSA
 from .account import Account
 from .chunk import Chunk
 
@@ -40,6 +43,22 @@ class Parser(object):
         password = cls.decode_aes256_auto(cls.read_item(io), encryption_key)
 
         return Account(id, name, username, password, url, group)
+
+    @classmethod
+    def parse_PRIK(cls, chunk, encryption_key):
+        decrypted = cls.decode_aes256('cbc',
+                                      encryption_key[:16],
+                                      cls.decode_hex(chunk.payload),
+                                      encryption_key)
+
+        hex_key = re.match(br'^LastPassPrivateKey<(?P<hex_key>.*)>LastPassPrivateKey$', decrypted).group('hex_key')
+        rsa_key = RSA.importKey(cls.decode_hex(hex_key))
+
+        rsa_key.dmp1 = rsa_key.d % (rsa_key.p - 1)
+        rsa_key.dmq1 = rsa_key.d % (rsa_key.q - 1)
+        rsa_key.iqmp = number.inverse(rsa_key.q, rsa_key.p)
+
+        return rsa_key
 
     @classmethod
     def parse_SHAR(cls, chunk, encryption_key):

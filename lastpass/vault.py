@@ -32,6 +32,8 @@ class Vault(object):
         for i in Parser.extract_chunks(blob):
             if i.id == b'ACCT':
                 self.accounts.append(Parser.parse_ACCT(i, key))
+            elif i.id == b'PRIK':
+                rsa_private_key = Parser.parse_PRIK(i, encryption_key)
             elif i.id == b'SHAR':
                 # After SHAR chunk all the folliwing accounts are enrypted with a new key
                 key = Parser.parse_SHAR(i, encryption_key)['key']

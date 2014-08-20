@@ -28,11 +28,10 @@ class Vault(object):
     # This more of an internal method, use one of the static constructors instead
     def __init__(self, blob, encryption_key):
         self.accounts = []
+        key = encryption_key
         for i in Parser.extract_chunks(blob):
             if i.id == b'ACCT':
-                self.accounts.append(Parser.parse_account(i, encryption_key))
+                self.accounts.append(Parser.parse_ACCT(i, key))
             elif i.id == b'SHAR':
-                # We need to stop at the first shared folder chunk
-                # All account below are encrypted with different keys
-                # Not supported at the moment
-                break
+                # After SHAR chunk all the folliwing accounts are enrypted with a new key
+                key = Parser.parse_SHAR(i, encryption_key)['key']

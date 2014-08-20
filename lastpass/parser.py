@@ -27,9 +27,8 @@ class Parser(object):
         return chunks
 
     # Parses an account chunk, decrypts and creates an Account object.
-    # TODO: See if this should be part of Account class.
     @classmethod
-    def parse_account(cls, chunk, encryption_key):
+    def parse_ACCT(cls, chunk, encryption_key):
         io = BytesIO(chunk.payload)
         id = cls.read_item(io)
         name = cls.decode_aes256_auto(cls.read_item(io), encryption_key)
@@ -41,6 +40,20 @@ class Parser(object):
         password = cls.decode_aes256_auto(cls.read_item(io), encryption_key)
 
         return Account(id, name, username, password, url, group)
+
+    @classmethod
+    def parse_SHAR(cls, chunk, encryption_key):
+        io = BytesIO(chunk.payload)
+        id = cls.read_item(io)
+        rsa_key = cls.decode_hex(cls.read_item(io))
+        encryption_name = cls.read_item(io)
+        for _ in range(2):
+            cls.skip_item(io)
+        key = cls.decode_hex(cls.decode_aes256_auto(cls.read_item(io), encryption_key))
+        name = cls.decode_aes256_auto(encryption_name, key)
+
+        # TODO: Return an object, not a dict
+        return {'id': id, 'rsa_key': rsa_key, 'name': name, 'key': key}
 
     # Reads one chunk from a stream and creates a Chunk object with the data read.
     @classmethod

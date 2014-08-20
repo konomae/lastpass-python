@@ -3,18 +3,21 @@ from base64 import b64decode
 import binascii
 import codecs
 from io import BytesIO
-from collections import OrderedDict
 import struct
 import re
 
 from Crypto.Cipher import AES
 from Crypto.Util import number
 from Crypto.PublicKey import RSA
+
 from .account import Account
 from .chunk import Chunk
 
 
 class Parser(object):
+    # OpenSSL constant
+    RSA_PKCS1_OAEP_PADDING = 4
+
     # Splits the blob into chucks grouped by kind.
     @classmethod
     def extract_chunks(cls, blob):
@@ -61,18 +64,29 @@ class Parser(object):
         return rsa_key
 
     @classmethod
-    def parse_SHAR(cls, chunk, encryption_key):
+    def parse_SHAR(cls, chunk, encryption_key, rsa_key):
         io = BytesIO(chunk.payload)
         id = cls.read_item(io)
-        rsa_key = cls.decode_hex(cls.read_item(io))
-        encryption_name = cls.read_item(io)
+        encrypted_key = cls.decode_hex(cls.read_item(io))
+        encrypted_name = cls.read_item(io)
         for _ in range(2):
             cls.skip_item(io)
-        key = cls.decode_hex(cls.decode_aes256_auto(cls.read_item(io), encryption_key))
-        name = cls.decode_aes256_auto(encryption_name, key)
+        key = cls.read_item(io)
+
+        # Shared folder encryption key might come already in pre-decrypted form,
+        # where it's only AES encrypted with the regular encryption key.
+        # When the key is blank, then there's a RSA encrypted key, which has to
+        # be decrypted first before use.
+        if not key:
+            # TODO: rsa_key.private_decrypt(encrypted_key, RSA_PKCS1_OAEP_PADDING)
+            key = cls.decode_hex(rsa_key.decrypt(encrypted_key))
+        else:
+            key = cls.decode_hex(cls.decode_aes256_auto(key, encryption_key))
+
+        name = cls.decode_aes256_auto(encrypted_name, key)
 
         # TODO: Return an object, not a dict
-        return {'id': id, 'rsa_key': rsa_key, 'name': name, 'key': key}
+        return {'id': id, 'name': name, 'encryption_key': key}
 
     # Reads one chunk from a stream and creates a Chunk object with the data read.
     @classmethod

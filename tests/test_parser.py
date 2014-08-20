@@ -6,7 +6,7 @@ from io import BytesIO
 from lastpass.blob import Blob
 from lastpass.chunk import Chunk
 from lastpass.parser import Parser
-from tests.test_data import TEST_BLOB, TEST_CHUNK_IDS, TEST_ACCOUNTS
+from tests.test_data import TEST_BLOB, TEST_ACCOUNTS, TEST_ENCRYPTION_KEY
 
 
 class ParserTestCase(unittest.TestCase):
@@ -17,7 +17,7 @@ class ParserTestCase(unittest.TestCase):
         self.encryption_key = b64decode('OfOUvVnQzB4v49sNh4+PdwIFb9Fr5+jVfWRTf+E2Ghg=')
 
         self.chunks = Parser.extract_chunks(self.blob)
-        self.accounts = [Parser.parse_ACCT(i, self.encryption_key) for i in self.chunks if i.id == b'ACCT']
+        self.accounts = [Parser.parse_ACCT(i, TEST_ENCRYPTION_KEY) for i in self.chunks if i.id == b'ACCT']
 
     def test_extract_chunks_returns_chunks_as_a_list(self):
         self.assertIsInstance(self.chunks, list)

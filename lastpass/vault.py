@@ -34,6 +34,7 @@ class Vault(object):
 
         for i in Parser.extract_chunks(blob):
             if i.id == b'ACCT':
+                # TODO: Put shared folder name as group in the account
                 self.accounts.append(Parser.parse_ACCT(i, key))
             elif i.id == b'PRIK':
                 rsa_private_key = Parser.parse_PRIK(i, encryption_key)

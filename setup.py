@@ -8,7 +8,7 @@ def get_version():
             m = re.match(r'__version__ = [\'"]([^\'"]*)[\'"]', line)
             if m:
                 return m.group(1)
-    return ''
+    raise RuntimeError('Cannot find version information')
 
 
 setup(

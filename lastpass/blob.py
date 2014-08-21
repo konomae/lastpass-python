@@ -5,8 +5,8 @@ class Blob(object):
         self.key_iteration_count = key_iteration_count
 
     def encryption_key(self, username, password):
-        from .fetcher import Fetcher
-        return Fetcher.make_key(username, password, self.key_iteration_count)
+        from . import fetcher
+        return fetcher.make_key(username, password, self.key_iteration_count)
 
     def __eq__(self, other):
         return self.bytes == other.bytes and self.key_iteration_count == other.key_iteration_count

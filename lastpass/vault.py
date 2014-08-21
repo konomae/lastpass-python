@@ -1,5 +1,5 @@
 # coding: utf-8
-from .fetcher import Fetcher
+from . import fetcher
 from .parser import Parser
 
 
@@ -23,7 +23,7 @@ class Vault(object):
     # Just fetches the blob, could be used to store it locally
     @classmethod
     def fetch_blob(cls, username, password, multifactor_password=None):
-        return Fetcher.fetch(Fetcher.login(username, password, multifactor_password))
+        return fetcher.fetch(fetcher.login(username, password, multifactor_password))
 
     # This more of an internal method, use one of the static constructors instead
     def __init__(self, blob, encryption_key):

@@ -4,7 +4,7 @@ import unittest
 import mock
 import lastpass
 from lastpass.blob import Blob
-from lastpass.fetcher import Fetcher
+from lastpass import fetcher
 from lastpass.session import Session
 
 
@@ -39,33 +39,33 @@ class FetcherTestCase(unittest.TestCase):
     def test_request_iteration_count_makes_a_post_request(self):
         m = mock.Mock()
         m.post.return_value = self._http_ok(str(self.key_iteration_count))
-        Fetcher.request_iteration_count(self.username, m)
+        fetcher.request_iteration_count(self.username, m)
         m.post.assert_called_with('https://lastpass.com/iterations.php', data={'email': self.username})
 
     def test_request_iteration_count_returns_key_iteration_count(self):
         m = mock.Mock()
         m.post.return_value = self._http_ok(str(self.key_iteration_count))
-        self.assertEqual(Fetcher.request_iteration_count(self.username, m), self.key_iteration_count)
+        self.assertEqual(fetcher.request_iteration_count(self.username, m), self.key_iteration_count)
 
     def test_request_iteration_count_raises_an_exception_on_http_error(self):
         m = mock.Mock()
         m.post.return_value = self._http_error()
-        self.assertRaises(lastpass.NetworkError, Fetcher.request_iteration_count, self.username, m)
+        self.assertRaises(lastpass.NetworkError, fetcher.request_iteration_count, self.username, m)
 
     def test_request_iteration_count_raises_an_exception_on_invalid_key_iteration_count(self):
         m = mock.Mock()
         m.post.return_value = self._http_ok('not a number')
-        self.assertRaises(lastpass.InvalidResponseError, Fetcher.request_iteration_count, self.username, m)
+        self.assertRaises(lastpass.InvalidResponseError, fetcher.request_iteration_count, self.username, m)
 
     def test_request_iteration_count_raises_an_exception_on_zero_key_iteration_cont(self):
         m = mock.Mock()
         m.post.return_value = self._http_ok('0')
-        self.assertRaises(lastpass.InvalidResponseError, Fetcher.request_iteration_count, self.username, m)
+        self.assertRaises(lastpass.InvalidResponseError, fetcher.request_iteration_count, self.username, m)
 
     def test_request_iteration_count_raises_an_exception_on_negative_key_iteration_cont(self):
         m = mock.Mock()
         m.post.return_value = self._http_ok('-1')
-        self.assertRaises(lastpass.InvalidResponseError, Fetcher.request_iteration_count, self.username, m)
+        self.assertRaises(lastpass.InvalidResponseError, fetcher.request_iteration_count, self.username, m)
 
     def test_request_login_makes_a_post_request(self):
         self._verify_request_login_post_request(None, self.login_post_data)
@@ -130,19 +130,19 @@ class FetcherTestCase(unittest.TestCase):
     def test_fetch_makes_a_get_request(self):
         m = mock.Mock()
         m.get.return_value = self._http_ok(self.blob_response)
-        Fetcher.fetch(self.session, m)
+        fetcher.fetch(self.session, m)
         m.get.assert_called_with('https://lastpass.com/getaccts.php?mobile=1&b64=1&hash=0.0&hasplugin=3.0.23&requestsrc=android',
                                  cookies={'PHPSESSID': self.session_id})
 
     def test_fetch_returns_a_blob(self):
         m = mock.Mock()
         m.get.return_value = self._http_ok(self.blob_response)
-        self.assertEqual(Fetcher.fetch(self.session, m), self.blob)
+        self.assertEqual(fetcher.fetch(self.session, m), self.blob)
 
     def test_fetch_raises_exception_on_http_error(self):
         m = mock.Mock()
         m.get.return_value = self._http_error()
-        self.assertRaises(lastpass.NetworkError, Fetcher.fetch, self.session, m)
+        self.assertRaises(lastpass.NetworkError, fetcher.fetch, self.session, m)
 
     def test_make_key_generates_correct_keys(self):
         keys = [
@@ -156,7 +156,7 @@ class FetcherTestCase(unittest.TestCase):
         ]
 
         for iterations, key in keys:
-            self.assertEqual(key, Fetcher.make_key('postlass@gmail.com', 'pl1234567890', iterations))
+            self.assertEqual(key, fetcher.make_key('postlass@gmail.com', 'pl1234567890', iterations))
 
     def test_make_hash(self):
         hashes = [
@@ -170,12 +170,12 @@ class FetcherTestCase(unittest.TestCase):
         ]
 
         for iterations, hash in hashes:
-            self.assertEqual(hash, Fetcher.make_hash('postlass@gmail.com', 'pl1234567890', iterations))
+            self.assertEqual(hash, fetcher.make_hash('postlass@gmail.com', 'pl1234567890', iterations))
 
     def _verify_request_login_post_request(self, multifactor_password, post_data):
         m = mock.Mock()
         m.post.return_value = self._http_ok('<ok sessionid="{}" />'.format(self.session_id))
-        Fetcher.request_login(self.username, self.password, self.key_iteration_count, multifactor_password, m)
+        fetcher.request_login(self.username, self.password, self.key_iteration_count, multifactor_password, m)
         m.post.assert_called_with('https://lastpass.com/login.php', data=post_data)
 
     @staticmethod
@@ -212,4 +212,4 @@ class FetcherTestCase(unittest.TestCase):
     def _request_login_with_response(self, response):
         m = mock.Mock()
         m.post.return_value = response
-        return Fetcher.request_login(self.username, self.password, self.key_iteration_count, None, m)
+        return fetcher.request_login(self.username, self.password, self.key_iteration_count, None, m)

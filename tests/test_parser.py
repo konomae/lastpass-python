@@ -248,27 +248,30 @@ class ParserTestCase(unittest.TestCase):
         self.assertEqual(Parser.decode_base64('YWJj'), b'abc')
         self.assertEqual(Parser.decode_base64('YWJjZA=='), b'abcd')
 
-    def test_decode_aes256_auto_decodes_a_blank_string(self):
-        self.assertEqual(Parser.decode_aes256_auto('', self.encryption_key), b'')
+    def test_decode_aes256_plain_auto_decodes_a_blank_string(self):
+        self.assertEqual(Parser.decode_aes256_plain_auto(b'', self.encryption_key), b'')
 
-    def test_decode_aes256_auto_decodes_ecb_plain_string(self):
-        self.assertEqual(Parser.decode_aes256_auto(
+    def test_decode_aes256_plain_auto_decodes_ecb_plain_string(self):
+        self.assertEqual(Parser.decode_aes256_plain_auto(
             b64decode('BNhd3Q3ZVODxk9c0C788NUPTIfYnZuxXfkghtMJ8jVM='), self.encryption_key),
             b'All your base are belong to us')
 
-    def test_decode_aes256_auto_decodes_ecb_base64_string(self):
-        self.assertEqual(Parser.decode_aes256_auto(
-            'BNhd3Q3ZVODxk9c0C788NUPTIfYnZuxXfkghtMJ8jVM=', self.encryption_key),
-            b'All your base are belong to us')
-
-    def test_decode_aes256_auto_decodes_cbc_plain_string(self):
-        self.assertEqual(Parser.decode_aes256_auto(
+    def test_decode_aes256_plain_auto_decodes_cbc_plain_string(self):
+        self.assertEqual(Parser.decode_aes256_plain_auto(
             b64decode('IcokDWmjOkKtLpZehWKL6666Uj6fNXPpX6lLWlou+1Lrwb+D3ymP6BAwd6C0TB3hSA=='), self.encryption_key),
             b'All your base are belong to us')
 
-    def test_decode_aes256_auto_decodes_cbc_base64_string(self):
-        self.assertEqual(Parser.decode_aes256_auto(
-            '!YFuiAVZgOD2K+s6y8yaMOw==|TZ1+if9ofqRKTatyUaOnfudletslMJ/RZyUwJuR/+aI=', self.encryption_key),
+    def test_decode_aes256_base64_auto_decodes_a_blank_string(self):
+        self.assertEqual(Parser.decode_aes256_base64_auto(b'', self.encryption_key), b'')
+
+    def test_decode_aes256_base64_auto_decodes_ecb_base64_string(self):
+        self.assertEqual(Parser.decode_aes256_base64_auto(
+            b'BNhd3Q3ZVODxk9c0C788NUPTIfYnZuxXfkghtMJ8jVM=', self.encryption_key),
+            b'All your base are belong to us')
+
+    def test_decode_aes256_base64_auto_decodes_cbc_base64_string(self):
+        self.assertEqual(Parser.decode_aes256_base64_auto(
+            b'!YFuiAVZgOD2K+s6y8yaMOw==|TZ1+if9ofqRKTatyUaOnfudletslMJ/RZyUwJuR/+aI=', self.encryption_key),
             b'All your base are belong to us')
 
     def test_decode_aes256_ecb_plain_decodes_a_blank_string(self):

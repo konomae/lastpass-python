@@ -50,14 +50,14 @@ class Parser(object):
     def parse_ACCT(cls, chunk, encryption_key):
         io = BytesIO(chunk.payload)
         id = cls.read_item(io)
-        name = cls.decode_aes256_auto(cls.read_item(io), encryption_key)
-        group = cls.decode_aes256_auto(cls.read_item(io), encryption_key)
+        name = cls.decode_aes256_plain_auto(cls.read_item(io), encryption_key)
+        group = cls.decode_aes256_plain_auto(cls.read_item(io), encryption_key)
         url = cls.decode_hex(cls.read_item(io))
-        notes = cls.decode_aes256_auto(cls.read_item(io), encryption_key)
+        notes = cls.decode_aes256_plain_auto(cls.read_item(io), encryption_key)
         for _ in range(2):
             cls.skip_item(io)
-        username = cls.decode_aes256_auto(cls.read_item(io), encryption_key)
-        password = cls.decode_aes256_auto(cls.read_item(io), encryption_key)
+        username = cls.decode_aes256_plain_auto(cls.read_item(io), encryption_key)
+        password = cls.decode_aes256_plain_auto(cls.read_item(io), encryption_key)
         for _ in range(2):
             cls.skip_item(io)
         secure_note = cls.read_item(io)
@@ -110,9 +110,9 @@ class Parser(object):
             # TODO: rsa_key.private_decrypt(encrypted_key, RSA_PKCS1_OAEP_PADDING)
             key = cls.decode_hex(rsa_key.decrypt(encrypted_key))
         else:
-            key = cls.decode_hex(cls.decode_aes256_auto(key, encryption_key))
+            key = cls.decode_hex(cls.decode_aes256_plain_auto(key, encryption_key))
 
-        name = cls.decode_aes256_auto(encrypted_name, key)
+        name = cls.decode_aes256_base64_auto(encrypted_name, key)
 
         # TODO: Return an object, not a dict
         return {'id': id, 'name': name, 'encryption_key': key}
@@ -199,28 +199,31 @@ class Parser(object):
     def decode_base64(cls, data):
         return b64decode(data)
 
-    # Guesses AES encoding/cipher from the length of the data.
-    # Possible combinations are:
-    #   - ciphers: AES-256 EBC, AES-256 CBC
-    #   - encodings: plain, base64
+    # Guesses AES cipher (EBC or CBD) from the length of the plain data.
     @classmethod
-    def decode_aes256_auto(cls, data, encryption_key):
+    def decode_aes256_plain_auto(cls, data, encryption_key):
+        assert isinstance(data, bytes)
         length = len(data)
-        length16 = length % 16
-        length64 = length % 64
 
         if length == 0:
             return b''
-        elif length16 == 0:
-            return cls.decode_aes256_ecb_plain(data, encryption_key)
-        elif length64 == 0 or length64 == 24 or length64 == 44:
-            return cls.decode_aes256_ecb_base64(data, encryption_key)
-        elif length16 == 1:
+        elif data[0] == b'!'[0] and length % 16 == 1 and length > 32:
             return cls.decode_aes256_cbc_plain(data, encryption_key)
-        elif length64 == 6 or length64 == 26 or length64 == 50:
+        else:
+            return cls.decode_aes256_ecb_plain(data, encryption_key)
+
+    # Guesses AES cipher (EBC or CBD) from the length of the base64 encoded data.
+    @classmethod
+    def decode_aes256_base64_auto(cls, data, encryption_key):
+        assert isinstance(data, bytes)
+        length = len(data)
+
+        if length == 0:
+            return b''
+        elif data[0] == b'!'[0]:
             return cls.decode_aes256_cbc_base64(data, encryption_key)
         else:
-            raise RuntimeError("'{}' doesn't seem to be AES-256 encrypted".format(repr(data)))
+            return cls.decode_aes256_ecb_base64(data, encryption_key)
 
     # Decrypts AES-256 ECB bytes.
     @classmethod

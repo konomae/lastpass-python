@@ -1,9 +1,19 @@
 from setuptools import setup
-import lastpass
+
+
+def get_version():
+    import re
+    with open('lastpass/__init__.py', 'r') as f:
+        for line in f:
+            m = re.match(r'__version__ = [\'"]([^\'"]*)[\'"]', line)
+            if m:
+                return m.group(1)
+    return ''
+
 
 setup(
     name='lastpass-python',
-    version=lastpass.__version__,
+    version=get_version(),
     description='LastPass Python API (unofficial)',
     long_description=open('README.rst').read(),
     license='MIT',

@@ -18,6 +18,14 @@ class Parser(object):
     # OpenSSL constant
     RSA_PKCS1_OAEP_PADDING = 4
 
+    # Secure note types that contain account-like information
+    ALLOWED_SECURE_NOTE_TYPES = [
+        b"Server",
+        b"Email Account",
+        b"Database",
+        b"Instant Messenger",
+    ]
+
     # Splits the blob into chucks grouped by kind.
     @classmethod
     def extract_chunks(cls, blob):
@@ -61,7 +69,7 @@ class Parser(object):
             secure_note_type = cls.read_item(io)
 
             # Only "Server" secure note stores account information
-            if secure_note_type != b'Server':
+            if secure_note_type not in cls.ALLOWED_SECURE_NOTE_TYPES:
                 return None
 
             url, username, password = cls.parse_secure_note_server(notes)

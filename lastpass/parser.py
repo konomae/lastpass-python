@@ -33,6 +33,11 @@ class Parser(object):
         return chunks
 
     # Parses an account chunk, decrypts and creates an Account object.
+    # May return nil when the chunk does not represent an account.
+    # All secure notes are ACCTs but not all of them strore account
+    # information.
+    #
+    # TODO: Make a test case that covers secure note account
     @classmethod
     def parse_ACCT(cls, chunk, encryption_key):
         io = BytesIO(chunk.payload)
@@ -40,10 +45,26 @@ class Parser(object):
         name = cls.decode_aes256_auto(cls.read_item(io), encryption_key)
         group = cls.decode_aes256_auto(cls.read_item(io), encryption_key)
         url = cls.decode_hex(cls.read_item(io))
-        for _ in range(3):
+        notes = cls.decode_aes256_auto(cls.read_item(io), encryption_key)
+        for _ in range(2):
             cls.skip_item(io)
         username = cls.decode_aes256_auto(cls.read_item(io), encryption_key)
         password = cls.decode_aes256_auto(cls.read_item(io), encryption_key)
+        for _ in range(2):
+            cls.skip_item(io)
+        secure_note = cls.read_item(io)
+
+        # Parse secure note
+        if secure_note == b"1":
+            for _ in range(17):
+                cls.skip_item(io)
+            secure_note_type = cls.read_item(io)
+
+            # Only "Server" secure note stores account information
+            if secure_note_type != b'Server':
+                return None
+
+            url, username, password = cls.parse_secure_note_server(notes)
 
         return Account(id, name, username, password, url, group)
 
@@ -87,6 +108,25 @@ class Parser(object):
 
         # TODO: Return an object, not a dict
         return {'id': id, 'name': name, 'encryption_key': key}
+
+    @classmethod
+    def parse_secure_note_server(cls, notes):
+        url = None
+        username = None
+        password = None
+
+        for i in notes.split(b'\n'):
+            if not i:  # blank line
+                continue
+            key, value = i.split(b':')
+            if key == b'Hostname':
+                url = value
+            elif key == b'Username':
+                username = value
+            elif key == b'Password':
+                password = value
+
+        return [url, username, password]
 
     # Reads one chunk from a stream and creates a Chunk object with the data read.
     @classmethod

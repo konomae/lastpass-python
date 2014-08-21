@@ -177,6 +177,16 @@ class ParserTestCase(unittest.TestCase):
                                              "62999647203566877832873138065626190040996517274" +
                                              "418161068665712298519808863"))
 
+    def test_parse_secure_note_server_returns_parsed_values(self):
+        url = b'url'
+        username = b'username'
+        password = b'password'
+        notes = 'Hostname:{}\nUsername:{}\nPassword:{}'.format(url.decode(), username.decode(), password.decode()).encode()
+
+        result = Parser.parse_secure_note_server(notes)
+        self.assertEqual(result[0], url)
+        self.assertEqual(result[1], username)
+        self.assertEqual(result[2], password)
 
     def test_read_chunk_returns_a_chunk(self):
         io = BytesIO(codecs.decode('4142434400000004DEADBEEF' + self.padding, 'hex_codec'))

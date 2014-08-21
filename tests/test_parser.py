@@ -5,7 +5,7 @@ import unittest
 from io import BytesIO
 from lastpass.blob import Blob
 from lastpass.chunk import Chunk
-from lastpass.parser import Parser
+from lastpass import parser
 from tests.test_data import TEST_BLOB, TEST_ACCOUNTS, TEST_ENCRYPTION_KEY
 
 
@@ -95,8 +95,8 @@ class ParserTestCase(unittest.TestCase):
                                 "E7DB3834690B58DDFF6B721157D0EC02")
         self.rsa_key_encryption_key = b64decode('v4uHomAR0tAXC3fA5Nfq7DjyJxuvYErMSCcZIWZKjpM=')
 
-        self.chunks = Parser.extract_chunks(self.blob)
-        self.accounts = [Parser.parse_ACCT(i, TEST_ENCRYPTION_KEY) for i in self.chunks if i.id == b'ACCT']
+        self.chunks = parser.extract_chunks(self.blob)
+        self.accounts = [parser.parse_ACCT(i, TEST_ENCRYPTION_KEY) for i in self.chunks if i.id == b'ACCT']
 
     def test_extract_chunks_returns_chunks_as_a_list(self):
         self.assertIsInstance(self.chunks, list)
@@ -109,7 +109,7 @@ class ParserTestCase(unittest.TestCase):
 
     def test_parse_PRIK_parses_private_key(self):
         chunk = Chunk(b'PRIK', self.encoded_rsa_key)
-        rsa_key = Parser.parse_PRIK(chunk, self.rsa_key_encryption_key)
+        rsa_key = parser.parse_PRIK(chunk, self.rsa_key_encryption_key)
 
         from Crypto.PublicKey.RSA import _RSAobj
         self.assertIsInstance(rsa_key, _RSAobj)
@@ -183,153 +183,153 @@ class ParserTestCase(unittest.TestCase):
         password = b'password'
         notes = 'Hostname:{}\nUsername:{}\nPassword:{}'.format(url.decode(), username.decode(), password.decode()).encode()
 
-        result = Parser.parse_secure_note_server(notes)
+        result = parser.parse_secure_note_server(notes)
         self.assertEqual(result[0], url)
         self.assertEqual(result[1], username)
         self.assertEqual(result[2], password)
 
     def test_read_chunk_returns_a_chunk(self):
         io = BytesIO(codecs.decode('4142434400000004DEADBEEF' + self.padding, 'hex_codec'))
-        self.assertEqual(Parser.read_chunk(io), Chunk(b'ABCD', codecs.decode('DEADBEEF', 'hex_codec')))
+        self.assertEqual(parser.read_chunk(io), Chunk(b'ABCD', codecs.decode('DEADBEEF', 'hex_codec')))
         self.assertEqual(io.tell(), 12)
 
     def test_read_item_returns_an_item(self):
         io = BytesIO(codecs.decode('00000004DEADBEEF' + self.padding, 'hex_codec'))
-        self.assertEqual(Parser.read_item(io), codecs.decode('DEADBEEF', 'hex_codec'))
+        self.assertEqual(parser.read_item(io), codecs.decode('DEADBEEF', 'hex_codec'))
         self.assertEqual(io.tell(), 8)
 
     def test_skip_item_skips_an_empty_item(self):
         io = BytesIO(codecs.decode('00000000' + self.padding, 'hex_codec'))
-        Parser.skip_item(io)
+        parser.skip_item(io)
         self.assertEqual(io.tell(), 4)
 
     def test_skip_item_skips_a_non_empty_item(self):
         io = BytesIO(codecs.decode('00000004DEADBEEF' + self.padding, 'hex_codec'))
-        Parser.skip_item(io)
+        parser.skip_item(io)
         self.assertEqual(io.tell(), 8)
 
     def test_read_id_returns_an_id(self):
         io = BytesIO(('ABCD' + self.padding).encode())
-        self.assertEqual(Parser.read_id(io), b'ABCD')
+        self.assertEqual(parser.read_id(io), b'ABCD')
         self.assertEqual(io.tell(), 4)
 
     def test_read_size_returns_a_size(self):
         io = BytesIO(codecs.decode('DEADBEEF' + self.padding, 'hex_codec'))
-        self.assertEqual(Parser.read_size(io), 0xDEADBEEF)
+        self.assertEqual(parser.read_size(io), 0xDEADBEEF)
         self.assertEqual(io.tell(), 4)
 
     def test_read_payload_returns_a_payload(self):
         io = BytesIO(codecs.decode('FEEDDEADBEEF' + self.padding, 'hex_codec'))
-        self.assertEqual(Parser.read_payload(io, 6), codecs.decode('FEEDDEADBEEF', 'hex_codec'))
+        self.assertEqual(parser.read_payload(io, 6), codecs.decode('FEEDDEADBEEF', 'hex_codec'))
         self.assertEqual(io.tell(), 6)
 
     def test_read_uint32_returns_a_number(self):
         io = BytesIO(codecs.decode('DEADBEEF' + self.padding, 'hex_codec'))
-        self.assertEqual(Parser.read_size(io), 0xDEADBEEF)
+        self.assertEqual(parser.read_size(io), 0xDEADBEEF)
         self.assertEqual(io.tell(), 4)
 
     def test_decode_hex_decodes_hex(self):
-        self.assertEqual(Parser.decode_hex(''), b'')
-        self.assertEqual(Parser.decode_hex('00ff'), b'\x00\xFF')
-        self.assertEqual(Parser.decode_hex('00010203040506070809'), b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09')
-        self.assertEqual(Parser.decode_hex('000102030405060708090a0b0c0d0e0f'), b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F')
-        self.assertEqual(Parser.decode_hex('8af633933e96a3c3550c2734bd814195'), b'\x8A\xF6\x33\x93\x3E\x96\xA3\xC3\x55\x0C\x27\x34\xBD\x81\x41\x95')
+        self.assertEqual(parser.decode_hex(''), b'')
+        self.assertEqual(parser.decode_hex('00ff'), b'\x00\xFF')
+        self.assertEqual(parser.decode_hex('00010203040506070809'), b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09')
+        self.assertEqual(parser.decode_hex('000102030405060708090a0b0c0d0e0f'), b'\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F')
+        self.assertEqual(parser.decode_hex('8af633933e96a3c3550c2734bd814195'), b'\x8A\xF6\x33\x93\x3E\x96\xA3\xC3\x55\x0C\x27\x34\xBD\x81\x41\x95')
 
     def test_decode_hex_raises_exception_on_odd_length(self):
-        self.assertRaises(TypeError, Parser.decode_hex, '0')
+        self.assertRaises(TypeError, parser.decode_hex, '0')
 
     def test_decode_hex_raises_exception_on_invalid_characters(self):
-        self.assertRaises(TypeError, Parser.decode_hex, 'xz')
+        self.assertRaises(TypeError, parser.decode_hex, 'xz')
 
     def test_decode_base64_decodes_base64(self):
-        self.assertEqual(Parser.decode_base64(''), b'')
-        self.assertEqual(Parser.decode_base64('YQ=='), b'a')
-        self.assertEqual(Parser.decode_base64('YWI='), b'ab')
-        self.assertEqual(Parser.decode_base64('YWJj'), b'abc')
-        self.assertEqual(Parser.decode_base64('YWJjZA=='), b'abcd')
+        self.assertEqual(parser.decode_base64(''), b'')
+        self.assertEqual(parser.decode_base64('YQ=='), b'a')
+        self.assertEqual(parser.decode_base64('YWI='), b'ab')
+        self.assertEqual(parser.decode_base64('YWJj'), b'abc')
+        self.assertEqual(parser.decode_base64('YWJjZA=='), b'abcd')
 
     def test_decode_aes256_plain_auto_decodes_a_blank_string(self):
-        self.assertEqual(Parser.decode_aes256_plain_auto(b'', self.encryption_key), b'')
+        self.assertEqual(parser.decode_aes256_plain_auto(b'', self.encryption_key), b'')
 
     def test_decode_aes256_plain_auto_decodes_ecb_plain_string(self):
-        self.assertEqual(Parser.decode_aes256_plain_auto(
+        self.assertEqual(parser.decode_aes256_plain_auto(
             b64decode('BNhd3Q3ZVODxk9c0C788NUPTIfYnZuxXfkghtMJ8jVM='), self.encryption_key),
             b'All your base are belong to us')
 
     def test_decode_aes256_plain_auto_decodes_cbc_plain_string(self):
-        self.assertEqual(Parser.decode_aes256_plain_auto(
+        self.assertEqual(parser.decode_aes256_plain_auto(
             b64decode('IcokDWmjOkKtLpZehWKL6666Uj6fNXPpX6lLWlou+1Lrwb+D3ymP6BAwd6C0TB3hSA=='), self.encryption_key),
             b'All your base are belong to us')
 
     def test_decode_aes256_base64_auto_decodes_a_blank_string(self):
-        self.assertEqual(Parser.decode_aes256_base64_auto(b'', self.encryption_key), b'')
+        self.assertEqual(parser.decode_aes256_base64_auto(b'', self.encryption_key), b'')
 
     def test_decode_aes256_base64_auto_decodes_ecb_base64_string(self):
-        self.assertEqual(Parser.decode_aes256_base64_auto(
+        self.assertEqual(parser.decode_aes256_base64_auto(
             b'BNhd3Q3ZVODxk9c0C788NUPTIfYnZuxXfkghtMJ8jVM=', self.encryption_key),
             b'All your base are belong to us')
 
     def test_decode_aes256_base64_auto_decodes_cbc_base64_string(self):
-        self.assertEqual(Parser.decode_aes256_base64_auto(
+        self.assertEqual(parser.decode_aes256_base64_auto(
             b'!YFuiAVZgOD2K+s6y8yaMOw==|TZ1+if9ofqRKTatyUaOnfudletslMJ/RZyUwJuR/+aI=', self.encryption_key),
             b'All your base are belong to us')
 
     def test_decode_aes256_ecb_plain_decodes_a_blank_string(self):
-        self.assertEqual(Parser.decode_aes256_ecb_plain(
+        self.assertEqual(parser.decode_aes256_ecb_plain(
             b64decode(''), self.encryption_key),
             b'')
 
     def test_decode_aes256_ecb_plain_decodes_a_short_string(self):
-        self.assertEqual(Parser.decode_aes256_ecb_plain(
+        self.assertEqual(parser.decode_aes256_ecb_plain(
             b64decode('8mHxIA8rul6eq72a/Gq2iw=='), self.encryption_key),
             b'0123456789')
 
     def test_decode_aes256_ecb_plain_decodes_a_long_string(self):
-        self.assertEqual(Parser.decode_aes256_ecb_plain(
+        self.assertEqual(parser.decode_aes256_ecb_plain(
             b64decode('BNhd3Q3ZVODxk9c0C788NUPTIfYnZuxXfkghtMJ8jVM='), self.encryption_key),
             b'All your base are belong to us')
 
     def test_decode_aes256_ecb_base64_decodes_a_blank_string(self):
-        self.assertEqual(Parser.decode_aes256_ecb_base64(
+        self.assertEqual(parser.decode_aes256_ecb_base64(
             '', self.encryption_key),
             b'')
 
     def test_decode_aes256_ecb_base64_decodes_a_short_string(self):
-        self.assertEqual(Parser.decode_aes256_ecb_base64(
+        self.assertEqual(parser.decode_aes256_ecb_base64(
             '8mHxIA8rul6eq72a/Gq2iw==', self.encryption_key),
             b'0123456789')
 
     def test_decode_aes256_ecb_base64_decodes_a_long_string(self):
-        self.assertEqual(Parser.decode_aes256_ecb_base64(
+        self.assertEqual(parser.decode_aes256_ecb_base64(
             'BNhd3Q3ZVODxk9c0C788NUPTIfYnZuxXfkghtMJ8jVM=', self.encryption_key),
             b'All your base are belong to us')
 
     def test_decode_aes256_cbc_plain_decodes_a_blank_string(self):
-        self.assertEqual(Parser.decode_aes256_cbc_plain(
+        self.assertEqual(parser.decode_aes256_cbc_plain(
             b64decode(''), self.encryption_key),
             b'')
 
     def test_decode_aes256_cbc_plain_decodes_a_short_string(self):
-        self.assertEqual(Parser.decode_aes256_cbc_plain(
+        self.assertEqual(parser.decode_aes256_cbc_plain(
             b64decode('IQ+hiIy0vGG4srsHmXChe3ehWc/rYPnfiyqOG8h78DdX'), self.encryption_key),
             b'0123456789')
 
     def test_decode_aes256_cbc_plain_decodes_a_long_string(self):
-        self.assertEqual(Parser.decode_aes256_cbc_plain(
+        self.assertEqual(parser.decode_aes256_cbc_plain(
             b64decode('IcokDWmjOkKtLpZehWKL6666Uj6fNXPpX6lLWlou+1Lrwb+D3ymP6BAwd6C0TB3hSA=='), self.encryption_key),
             b'All your base are belong to us')
 
     def test_decode_aes256_cbc_base64_decodes_a_blank_string(self):
-        self.assertEqual(Parser.decode_aes256_cbc_base64(
+        self.assertEqual(parser.decode_aes256_cbc_base64(
             '', self.encryption_key),
             b'')
 
     def test_decode_aes256_cbc_base64_decodes_a_short_string(self):
-        self.assertEqual(Parser.decode_aes256_cbc_base64(
+        self.assertEqual(parser.decode_aes256_cbc_base64(
             '!6TZb9bbrqpocMaNgFjrhjw==|f7RcJ7UowesqGk+um+P5ug==', self.encryption_key),
             b'0123456789')
 
     def test_decode_aes256_cbc_base64_decodes_a_long_string(self):
-        self.assertEqual(Parser.decode_aes256_cbc_base64(
+        self.assertEqual(parser.decode_aes256_cbc_base64(
             '!YFuiAVZgOD2K+s6y8yaMOw==|TZ1+if9ofqRKTatyUaOnfudletslMJ/RZyUwJuR/+aI=', self.encryption_key),
             b'All your base are belong to us')

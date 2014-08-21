@@ -1,5 +1,3 @@
-from .parser import Parser
-
 from .vault import Vault
 from .exceptions import *
 

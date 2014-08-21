@@ -1,45 +1,54 @@
 # coding: utf-8
 
 
-# Base class for all errors, should not be raised
-class Error(Exception): pass
+class Error(Exception):
+    """Base class for all errors, should not be raised"""
+    pass
 
 
 #
 # Generic errors
 #
 
-# Something went wrong with the network
-class NetworkError(Error): pass
+class NetworkError(Error):
+    """Something went wrong with the network"""
+    pass
 
 
-# Server responded with something we don't understand
-class InvalidResponseError(Error): pass
+class InvalidResponseError(Error):
+    """Server responded with something we don't understand"""
+    pass
 
 
-# Server responded with XML we don't understand
-class UnknownResponseSchemaError(Error): pass
+class UnknownResponseSchemaError(Error):
+    """Server responded with XML we don't understand"""
+    pass
 
 
 #
 # LastPass returned errors
 #
 
-# LastPass error: unknown username
-class LastPassUnknownUsernameError(Error): pass
+class LastPassUnknownUsernameError(Error):
+    """LastPass error: unknown username"""
+    pass
 
 
-# LastPass error: invalid password
-class LastPassInvalidPasswordError(Error): pass
+class LastPassInvalidPasswordError(Error):
+    """LastPass error: invalid password"""
+    pass
 
 
-# LastPass error: missing or incorrect Google Authenticator code
-class LastPassIncorrectGoogleAuthenticatorCodeError(Error): pass
+class LastPassIncorrectGoogleAuthenticatorCodeError(Error):
+    """LastPass error: missing or incorrect Google Authenticator code"""
+    pass
 
 
-# LastPass error: missing or incorrect Yubikey password
-class LastPassIncorrectYubikeyPasswordError(Error): pass
+class LastPassIncorrectYubikeyPasswordError(Error):
+    """LastPass error: missing or incorrect Yubikey password"""
+    pass
 
 
-# LastPass error we don't know about
-class LastPassUnknownError(Error): pass
+class LastPassUnknownError(Error):
+    """LastPass error we don't know about"""
+    pass

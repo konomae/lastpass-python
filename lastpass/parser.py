@@ -26,8 +26,8 @@ ALLOWED_SECURE_NOTE_TYPES = [
 ]
 
 
-# Splits the blob into chucks grouped by kind.
 def extract_chunks(blob):
+    """Splits the blob into chucks grouped by kind."""
     chunks = []
     stream = BytesIO(blob.bytes)
     current_pos = stream.tell()
@@ -40,13 +40,15 @@ def extract_chunks(blob):
     return chunks
 
 
-# Parses an account chunk, decrypts and creates an Account object.
-# May return nil when the chunk does not represent an account.
-# All secure notes are ACCTs but not all of them strore account
-# information.
-#
-# TODO: Make a test case that covers secure note account
 def parse_ACCT(chunk, encryption_key):
+    """
+    Parses an account chunk, decrypts and creates an Account object.
+    May return nil when the chunk does not represent an account.
+    All secure notes are ACCTs but not all of them strore account
+    information.
+    """
+    # TODO: Make a test case that covers secure note account
+
     io = BytesIO(chunk.payload)
     id = read_item(io)
     name = decode_aes256_plain_auto(read_item(io), encryption_key)
@@ -134,8 +136,8 @@ def parse_secure_note_server(notes):
     return [url, username, password]
 
 
-# Reads one chunk from a stream and creates a Chunk object with the data read.
 def read_chunk(stream):
+    """Reads one chunk from a stream and creates a Chunk object with the data read."""
     # LastPass blob chunk is made up of 4-byte ID,
     # big endian 4-byte size and payload of that size.
     #
@@ -147,8 +149,8 @@ def read_chunk(stream):
     return Chunk(read_id(stream), read_payload(stream, read_size(stream)))
 
 
-# Reads an item from a stream and returns it as a string of bytes.
 def read_item(stream):
+    """Reads an item from a stream and returns it as a string of bytes."""
     # An item in an itemized chunk is made up of the
     # big endian size and the payload of that size.
     #
@@ -159,47 +161,47 @@ def read_item(stream):
     return read_payload(stream, read_size(stream))
 
 
-# Skips an item in a stream.
 def skip_item(stream, times=1):
+    """Skips an item in a stream."""
     for i in range(times):
         read_item(stream)
 
 
-# Reads a chunk ID from a stream.
 def read_id(stream):
+    """Reads a chunk ID from a stream."""
     return stream.read(4)
 
 
-# Reads a chunk or an item ID.
 def read_size(stream):
+    """Reads a chunk or an item ID."""
     return read_uint32(stream)
 
 
-# Reads a payload of a given size from a stream.
 def read_payload(stream, size):
+    """Reads a payload of a given size from a stream."""
     return stream.read(size)
 
 
-# Reads an unsigned 32 bit integer from a stream.
 def read_uint32(stream):
+    """Reads an unsigned 32 bit integer from a stream."""
     return struct.unpack('>I', stream.read(4))[0]
 
 
-# Decodes a hex encoded string into raw bytes.
 def decode_hex(data):
+    """Decodes a hex encoded string into raw bytes."""
     try:
         return codecs.decode(data, 'hex_codec')
     except binascii.Error:
         raise TypeError()
 
 
-# Decodes a base64 encoded string into raw bytes.
 def decode_base64(data):
+    """Decodes a base64 encoded string into raw bytes."""
     return b64decode(data)
 
 
-# Guesses AES cipher (EBC or CBD) from the length of the plain data.
 def decode_aes256_plain_auto(data, encryption_key):
+    """Guesses AES cipher (EBC or CBD) from the length of the plain data."""
     assert isinstance(data, bytes)
     length = len(data)
 
@@ -211,8 +213,8 @@ def decode_aes256_plain_auto(data, encryption_key):
         return decode_aes256_ecb_plain(data, encryption_key)
 
 
-# Guesses AES cipher (EBC or CBD) from the length of the base64 encoded data.
 def decode_aes256_base64_auto(data, encryption_key):
+    """Guesses AES cipher (EBC or CBD) from the length of the base64 encoded data."""
     assert isinstance(data, bytes)
     length = len(data)
 
@@ -224,21 +226,21 @@ def decode_aes256_base64_auto(data, encryption_key):
         return decode_aes256_ecb_base64(data, encryption_key)
 
 
-# Decrypts AES-256 ECB bytes.
 def decode_aes256_ecb_plain(data, encryption_key):
+    """Decrypts AES-256 ECB bytes."""
     if not data:
         return b''
     else:
         return decode_aes256('ecb', '', data, encryption_key)
 
 
-# Decrypts base64 encoded AES-256 ECB bytes.
 def decode_aes256_ecb_base64(data, encryption_key):
+    """Decrypts base64 encoded AES-256 ECB bytes."""
     return decode_aes256_ecb_plain(decode_base64(data), encryption_key)
 
 
-# Decrypts AES-256 CBC bytes.
 def decode_aes256_cbc_plain(data, encryption_key):
+    """Decrypts AES-256 CBC bytes."""
     if not data:
         return b''
     else:
@@ -248,8 +250,8 @@ def decode_aes256_cbc_plain(data, encryption_key):
         return decode_aes256('cbc', data[1:17], data[17:], encryption_key)
 
 
-# Decrypts base64 encoded AES-256 CBC bytes.
 def decode_aes256_cbc_base64(data, encryption_key):
+    """Decrypts base64 encoded AES-256 CBC bytes."""
     if not data:
         return b''
     else:
@@ -264,10 +266,12 @@ def decode_aes256_cbc_base64(data, encryption_key):
             encryption_key)
 
 
-# Decrypt AES-256 bytes.
-# Allowed ciphers are: :ecb, :cbc.
-# If for :ecb iv is not used and should be set to "".
 def decode_aes256(cipher, iv, data, encryption_key):
+    """
+    Decrypt AES-256 bytes.
+    Allowed ciphers are: :ecb, :cbc.
+    If for :ecb iv is not used and should be set to "".
+    """
     if cipher == 'cbc':
         aes_mode = AES.MODE_CBC
     elif cipher == 'ecb':

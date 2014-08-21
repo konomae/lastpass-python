@@ -5,7 +5,6 @@ from binascii import hexlify
 from Crypto.Hash import HMAC, SHA256
 from Crypto.Protocol.KDF import PBKDF2
 import requests
-#from lxml import etree
 from xml.etree import ElementTree as etree
 from . import blob
 from .exceptions import (

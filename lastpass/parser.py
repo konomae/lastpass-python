@@ -53,18 +53,15 @@ def parse_ACCT(chunk, encryption_key):
     group = decode_aes256_plain_auto(read_item(io), encryption_key)
     url = decode_hex(read_item(io))
     notes = decode_aes256_plain_auto(read_item(io), encryption_key)
-    for _ in range(2):
-        skip_item(io)
+    skip_item(io, 2)
     username = decode_aes256_plain_auto(read_item(io), encryption_key)
     password = decode_aes256_plain_auto(read_item(io), encryption_key)
-    for _ in range(2):
-        skip_item(io)
+    skip_item(io, 2)
     secure_note = read_item(io)
 
     # Parse secure note
     if secure_note == b"1":
-        for _ in range(17):
-            skip_item(io)
+        skip_item(io, 17)
         secure_note_type = read_item(io)
 
         # Only "Server" secure note stores account information
@@ -99,6 +96,7 @@ def parse_SHAR(chunk, encryption_key, rsa_key):
     encrypted_name = read_item(io)
     for _ in range(2):
         skip_item(io)
+    skip_item(io, 2)
     key = read_item(io)
 
     # Shared folder encryption key might come already in pre-decrypted form,
@@ -162,8 +160,9 @@ def read_item(stream):
 
 
 # Skips an item in a stream.
-def skip_item(stream):
-    read_item(stream)
+def skip_item(stream, times=1):
+    for i in range(times):
+        read_item(stream)
 
 
 # Reads a chunk ID from a stream.

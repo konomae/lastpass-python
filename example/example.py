@@ -2,7 +2,11 @@
 # coding: utf-8
 import json
 import os
-import lastpass
+from lastpass import (
+    Vault,
+    LastPassIncorrectYubikeyPasswordError,
+    LastPassIncorrectGoogleAuthenticatorCodeError
+)
 
 with open(os.path.join(os.path.dirname(__file__), 'credentials.json')) as f:
     credentials = json.load(f)
@@ -11,19 +15,19 @@ with open(os.path.join(os.path.dirname(__file__), 'credentials.json')) as f:
 
 try:
     # First try without a multifactor password
-    vault = lastpass.Vault.open_remote(username, password)
-except lastpass.LastPassIncorrectGoogleAuthenticatorCodeError as e:
+    vault = Vault.open_remote(username, password)
+except LastPassIncorrectGoogleAuthenticatorCodeError as e:
     # Get the code
     multifactor_password = input('Enter Google Authenticator code:')
 
     # And now retry with the code
-    vault = lastpass.Vault.open_remote(username, password, multifactor_password)
-except lastpass.LastPassIncorrectYubikeyPasswordError as e:
+    vault = Vault.open_remote(username, password, multifactor_password)
+except LastPassIncorrectYubikeyPasswordError as e:
     # Get the code
     multifactor_password = input('Enter Yubikey password:')
 
     # And now retry with the code
-    vault = lastpass.Vault.open_remote(username, password, multifactor_password)
+    vault = Vault.open_remote(username, password, multifactor_password)
 
 
 for index, i in enumerate(vault.accounts):

@@ -76,6 +76,7 @@ def parse_ACCT(chunk, encryption_key):
 
 
 def parse_PRIK(chunk, encryption_key):
+    """Parse PRIK chunk which contains private RSA key"""
     decrypted = decode_aes256('cbc',
                               encryption_key[:16],
                               decode_hex(chunk.payload),
@@ -92,6 +93,7 @@ def parse_PRIK(chunk, encryption_key):
 
 
 def parse_SHAR(chunk, encryption_key, rsa_key):
+    # TODO: Fake some data and make a test
     io = BytesIO(chunk.payload)
     id = read_item(io)
     encrypted_key = decode_hex(read_item(io))

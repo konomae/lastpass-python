@@ -5,5 +5,8 @@ python:
   - "3.4"
 install:
   - "pip install -r requirements.txt"
+  - "pip install -r coveralls"
 script:
-  - "nosetests"
+  - "nosetests --with-coverage --cover-package=."
+after_success:
+  - "coveralls"

@@ -11,6 +11,15 @@ LastPass Python API
 
 **This is unofficial LastPass API**
 
+
+Install
+-------
+
+.. code-block:: bash
+
+    $ pip install lastpass-python
+
+
 Example
 -------
 

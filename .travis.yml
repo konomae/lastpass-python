@@ -6,7 +6,14 @@ python:
 install:
   - "pip install -r requirements.txt"
   - "pip install coveralls"
+  - "if [[ $TEST_PEP8 == '1' ]]; then pip install pep8; fi"
 script:
-  - "nosetests --with-coverage --cover-package=."
+  - "if [[ $TEST_PEP8 == '1' ]]; then pep8 --repeat --show-source --exclude=.venv,.tox,dist,docs,build,lastpass_python.egg-info,.git --ignore=E501 .; else nosetests --with-coverage --cover-package=lastpass; fi"
 after_success:
-  - "coveralls"
+  - "if [[ $TEST_PEP8 == '1' ]]; then echo 'No coverage report when running pep8' ; else coveralls ; fi"
+matrix:
+  include:
+    - python: "2.7"
+      env: TEST_PEP8=1
+    - python: "3.4"
+      env: TEST_PEP8=1

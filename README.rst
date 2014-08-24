@@ -33,6 +33,30 @@ Example
         print(i.id, i.username, i.password, i.url)
 
 
+
+Testing
+-------
+
+Install test dependencies
+
+.. code-block:: bash
+
+    $ pip install -r requirements.txt
+
+Run tests with
+
+.. code-block:: bash
+
+    $ nosetests
+
+or test all environments and pep8 with tox
+
+.. code-block:: bash
+
+    $ tox
+
+
+
 License
 -------
 

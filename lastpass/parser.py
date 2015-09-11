@@ -98,8 +98,6 @@ def parse_SHAR(chunk, encryption_key, rsa_key):
     id = read_item(io)
     encrypted_key = decode_hex(read_item(io))
     encrypted_name = read_item(io)
-    for _ in range(2):
-        skip_item(io)
     skip_item(io, 2)
     key = read_item(io)
 

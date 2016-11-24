@@ -125,7 +125,9 @@ def parse_secure_note_server(notes):
     for i in notes.split(b'\n'):
         if not i:  # blank line
             continue
-        key, value = i.split(b':')
+        # Split only once so that strings like "Hostname:host.example.com:80"
+        # get interpreted correctly
+        key, value = i.split(b':', 1)
         if key == b'Hostname':
             url = value
         elif key == b'Username':

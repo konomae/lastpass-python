@@ -123,7 +123,7 @@ def parse_secure_note_server(notes):
     password = None
 
     for i in notes.split(b'\n'):
-        if not i:  # blank line
+        if not i or b':' not in i:  # blank line or no ::  # blank line
             continue
         # Split only once so that strings like "Hostname:host.example.com:80"
         # get interpreted correctly

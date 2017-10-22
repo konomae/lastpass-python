@@ -61,6 +61,8 @@ def parse_ACCT(chunk, encryption_key):
     skip_item(io, 2)
     secure_note = read_item(io)
 
+    if len(notes) == 0:
+        notes = None
     # Parse secure note
     if secure_note == b"1":
         skip_item(io, 17)
@@ -72,7 +74,7 @@ def parse_ACCT(chunk, encryption_key):
 
         url, username, password = parse_secure_note_server(notes)
 
-    return Account(id, name, username, password, url, group)
+    return Account(id, name, username, password, url, group, notes=notes)
 
 
 def parse_PRIK(chunk, encryption_key):

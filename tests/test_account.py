@@ -11,7 +11,8 @@ class AccountTestCase(unittest.TestCase):
         self.password = 'password'
         self.url = 'url'
         self.group = 'group'
-        self.account = Account(self.id, self.name, self.username, self.password, self.url, self.group)
+        self.notes = 'notes'
+        self.account = Account(self.id, self.name, self.username, self.password, self.url, self.group, self.notes)
 
     def test_id_returns_the_correct_value(self):
         self.assertEqual(self.account.id, self.id)
@@ -30,3 +31,6 @@ class AccountTestCase(unittest.TestCase):
 
     def test_group_returns_the_correct_value(self):
         self.assertEqual(self.account.group, self.group)
+
+    def test_notes_returns_the_correct_value(self):
+        self.assertEqual(self.account.notes, self.notes)

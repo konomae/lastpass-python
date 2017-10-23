@@ -42,6 +42,20 @@ class FetcherTestCase(unittest.TestCase):
         self.login_post_data_with_yubikey_password = self.login_post_data.copy()
         self.login_post_data_with_yubikey_password['otp'] = self.yubikey_password
 
+    def test_logout_makes_a_get_request(self):
+        m = mock.Mock()
+        m.get.return_value = self._http_ok('')
+        fetcher.logout(self.session, m)
+        m.get.assert_called_with(
+            'https://lastpass.com/logout.php?mobile=1',
+            cookies={'PHPSESSID': self.session_id}
+        )
+
+    def test_logout_raises_an_exception_on_HTTP_error(self):
+        m = mock.Mock()
+        m.post.return_value = self._http_error()
+        self.assertRaises(lastpass.NetworkError, fetcher.logout, self.session, m)
+
     def test_request_iteration_count_makes_a_post_request(self):
         m = mock.Mock()
         m.post.return_value = self._http_ok(str(self.key_iteration_count))

@@ -15,7 +15,7 @@ class Vault(object):
     def open_local(cls, blob_filename, username, password):
         """Creates a vault from a locally stored blob"""
         # TODO: read the blob here
-        pass
+        raise NotImplementedError()
 
     @classmethod
     def open(cls, blob, username, password):
@@ -25,7 +25,11 @@ class Vault(object):
     @classmethod
     def fetch_blob(cls, username, password, multifactor_password=None, client_id=None):
         """Just fetches the blob, could be used to store it locally"""
-        return fetcher.fetch(fetcher.login(username, password, multifactor_password, client_id))
+        session = fetcher.login(username, password, multifactor_password, client_id)
+        blob = fetcher.fetch(session)
+        fetcher.logout(session)
+
+        return blob
 
     def __init__(self, blob, encryption_key):
         """This more of an internal method, use one of the static constructors instead"""

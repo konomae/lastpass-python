@@ -28,6 +28,17 @@ def login(username, password, multifactor_password=None, client_id=None):
     return request_login(username, password, key_iteration_count, multifactor_password, client_id)
 
 
+def logout(session, web_client=http):
+    # type: (Session, requests) -> None
+    response = web_client.get(
+        'https://lastpass.com/logout.php?mobile=1',
+        cookies={'PHPSESSID': session.id}
+    )
+
+    if response.status_code != requests.codes.ok:
+        raise NetworkError()
+
+
 def fetch(session, web_client=http):
     response = web_client.get('https://lastpass.com/getaccts.php?mobile=1&b64=1&hash=0.0&hasplugin=3.0.23&requestsrc=android',
                               cookies={'PHPSESSID': session.id})

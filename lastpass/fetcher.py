@@ -20,12 +20,15 @@ from .exceptions import (
 from .session import Session
 
 
+http = requests
+
+
 def login(username, password, multifactor_password=None):
     key_iteration_count = request_iteration_count(username)
     return request_login(username, password, key_iteration_count, multifactor_password)
 
 
-def fetch(session, web_client=requests):
+def fetch(session, web_client=http):
     response = web_client.get('https://lastpass.com/getaccts.php?mobile=1&b64=1&hash=0.0&hasplugin=3.0.23&requestsrc=android',
                               cookies={'PHPSESSID': session.id})
 
@@ -35,7 +38,7 @@ def fetch(session, web_client=requests):
     return blob.Blob(decode_blob(response.content), session.key_iteration_count)
 
 
-def request_iteration_count(username, web_client=requests):
+def request_iteration_count(username, web_client=http):
     response = web_client.post('https://lastpass.com/iterations.php',
                                data={'email': username})
     if response.status_code != requests.codes.ok:
@@ -51,7 +54,7 @@ def request_iteration_count(username, web_client=requests):
     raise InvalidResponseError('Key iteration count is not positive')
 
 
-def request_login(username, password, key_iteration_count, multifactor_password=None, web_client=requests):
+def request_login(username, password, key_iteration_count, multifactor_password=None, web_client=http):
     body = {
         'method': 'mobile',
         'web': 1,

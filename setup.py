@@ -14,7 +14,7 @@ def get_version():
 setup(
     name='lastpass-python',
     version=get_version(),
-    description='LastPass Python API (unofficial)',
+    description='Read only access to the online LastPass vault (unofficial)',
     long_description=open('README.rst').read(),
     license='MIT',
     author='konomae',

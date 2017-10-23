@@ -23,9 +23,9 @@ from .session import Session
 http = requests
 
 
-def login(username, password, multifactor_password=None):
+def login(username, password, multifactor_password=None, client_id=None):
     key_iteration_count = request_iteration_count(username)
-    return request_login(username, password, key_iteration_count, multifactor_password)
+    return request_login(username, password, key_iteration_count, multifactor_password, client_id)
 
 
 def fetch(session, web_client=http):
@@ -54,7 +54,7 @@ def request_iteration_count(username, web_client=http):
     raise InvalidResponseError('Key iteration count is not positive')
 
 
-def request_login(username, password, key_iteration_count, multifactor_password=None, web_client=http):
+def request_login(username, password, key_iteration_count, multifactor_password=None, client_id=None, web_client=http):
     body = {
         'method': 'mobile',
         'web': 1,
@@ -66,6 +66,9 @@ def request_login(username, password, key_iteration_count, multifactor_password=
 
     if multifactor_password:
         body['otp'] = multifactor_password
+
+    if client_id:
+        body['imei'] = client_id
 
     response = web_client.post('https://lastpass.com/login.php',
                                data=body)

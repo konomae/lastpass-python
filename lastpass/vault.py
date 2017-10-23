@@ -6,9 +6,10 @@ from .exceptions import InvalidResponseError
 
 class Vault(object):
     @classmethod
-    def open_remote(cls, username, password, multifactor_password=None):
+    def open_remote(cls, username, password, multifactor_password=None, client_id=None):
         """Fetches a blob from the server and creates a vault"""
-        return cls.open(cls.fetch_blob(username, password, multifactor_password), username, password)
+        blob = cls.fetch_blob(username, password, multifactor_password, client_id)
+        return cls.open(blob, username, password)
 
     @classmethod
     def open_local(cls, blob_filename, username, password):
@@ -22,9 +23,9 @@ class Vault(object):
         return cls(blob, blob.encryption_key(username, password))
 
     @classmethod
-    def fetch_blob(cls, username, password, multifactor_password=None):
+    def fetch_blob(cls, username, password, multifactor_password=None, client_id=None):
         """Just fetches the blob, could be used to store it locally"""
-        return fetcher.fetch(fetcher.login(username, password, multifactor_password))
+        return fetcher.fetch(fetcher.login(username, password, multifactor_password, client_id))
 
     def __init__(self, blob, encryption_key):
         """This more of an internal method, use one of the static constructors instead"""

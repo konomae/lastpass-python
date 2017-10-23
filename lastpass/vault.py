@@ -41,7 +41,7 @@ class Vault(object):
         self.accounts = self.parse_accounts(chunks, encryption_key)
 
     def is_complete(self, chunks):
-        return len(chunks) > 0 and chunks[-1].id == 'ENDM' and chunks[-1].payload == 'OK'
+        return len(chunks) > 0 and chunks[-1].id == b'ENDM' and chunks[-1].payload == b'OK'
 
     def parse_accounts(self, chunks, encryption_key):
         accounts = []

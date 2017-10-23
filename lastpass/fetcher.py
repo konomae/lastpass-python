@@ -2,8 +2,6 @@
 import hashlib
 from base64 import b64decode
 from binascii import hexlify
-from Crypto.Hash import HMAC, SHA256
-from Crypto.Protocol.KDF import PBKDF2
 import requests
 from xml.etree import ElementTree as etree
 from . import blob
@@ -20,12 +18,26 @@ from .exceptions import (
 from .session import Session
 
 
-def login(username, password, multifactor_password=None):
+http = requests
+
+
+def login(username, password, multifactor_password=None, client_id=None):
     key_iteration_count = request_iteration_count(username)
-    return request_login(username, password, key_iteration_count, multifactor_password)
+    return request_login(username, password, key_iteration_count, multifactor_password, client_id)
 
 
-def fetch(session, web_client=requests):
+def logout(session, web_client=http):
+    # type: (Session, requests) -> None
+    response = web_client.get(
+        'https://lastpass.com/logout.php?mobile=1',
+        cookies={'PHPSESSID': session.id}
+    )
+
+    if response.status_code != requests.codes.ok:
+        raise NetworkError()
+
+
+def fetch(session, web_client=http):
     response = web_client.get('https://lastpass.com/getaccts.php?mobile=1&b64=1&hash=0.0&hasplugin=3.0.23&requestsrc=android',
                               cookies={'PHPSESSID': session.id})
 
@@ -35,7 +47,7 @@ def fetch(session, web_client=requests):
     return blob.Blob(decode_blob(response.content), session.key_iteration_count)
 
 
-def request_iteration_count(username, web_client=requests):
+def request_iteration_count(username, web_client=http):
     response = web_client.post('https://lastpass.com/iterations.php',
                                data={'email': username})
     if response.status_code != requests.codes.ok:
@@ -51,7 +63,7 @@ def request_iteration_count(username, web_client=requests):
     raise InvalidResponseError('Key iteration count is not positive')
 
 
-def request_login(username, password, key_iteration_count, multifactor_password=None, web_client=requests):
+def request_login(username, password, key_iteration_count, multifactor_password=None, client_id=None, web_client=http):
     body = {
         'method': 'mobile',
         'web': 1,
@@ -63,6 +75,9 @@ def request_login(username, password, key_iteration_count, multifactor_password=
 
     if multifactor_password:
         body['otp'] = multifactor_password
+
+    if client_id:
+        body['imei'] = client_id
 
     response = web_client.post('https://lastpass.com/login.php',
                                data=body)
@@ -120,18 +135,17 @@ def make_key(username, password, key_iteration_count):
     if key_iteration_count == 1:
         return hashlib.sha256(username.encode() + password.encode()).digest()
     else:
-        prf = lambda p, s: HMAC.new(p, s, SHA256).digest()
-        return PBKDF2(password.encode(), username.encode(), 32, key_iteration_count, prf)
+        return hashlib.pbkdf2_hmac('sha256', password.encode(), username.encode(), key_iteration_count, 32)
 
 
 def make_hash(username, password, key_iteration_count):
     if key_iteration_count == 1:
         return bytearray(hashlib.sha256(hexlify(make_key(username, password, 1)) + password.encode()).hexdigest(), 'ascii')
     else:
-        prf = lambda p, s: HMAC.new(p, s, SHA256).digest()
-        return hexlify(PBKDF2(
+        return hexlify(hashlib.pbkdf2_hmac(
+            'sha256',
             make_key(username, password, key_iteration_count),
             password.encode(),
-            32,
             1,
-            prf))
+            32
+        ))

@@ -13,9 +13,11 @@ class FetcherTestCase(unittest.TestCase):
         self.username = 'username'
         self.password = 'password'
         self.key_iteration_count = 5000
+
         self.hash = b'7880a04588cfab954aa1a2da98fd9c0d2c6eba4c53e36a94510e6dbf30759256'
         self.session_id = '53ru,Hb713QnEVM5zWZ16jMvxS0'
         self.session = Session(self.session_id, self.key_iteration_count)
+
         self.blob_response = 'TFBBVgAAAAMxMjJQUkVNAAAACjE0MTQ5'
         self.blob_bytes = b64decode(self.blob_response)
         self.blob = Blob(self.blob_bytes, self.key_iteration_count)
@@ -27,6 +29,10 @@ class FetcherTestCase(unittest.TestCase):
                                 'hash': self.hash,
                                 'iterations': self.key_iteration_count}
 
+        self.device_id = '492378378052455'
+        self.login_post_data_with_device_id = self.login_post_data.copy()
+        self.login_post_data_with_device_id.update({'imei': self.device_id})
+
         self.google_authenticator_code = '12345'
         self.yubikey_password = 'emdbwzemyisymdnevznyqhqnklaqheaxszzvtnxjrmkb'
 
@@ -35,6 +41,20 @@ class FetcherTestCase(unittest.TestCase):
 
         self.login_post_data_with_yubikey_password = self.login_post_data.copy()
         self.login_post_data_with_yubikey_password['otp'] = self.yubikey_password
+
+    def test_logout_makes_a_get_request(self):
+        m = mock.Mock()
+        m.get.return_value = self._http_ok('')
+        fetcher.logout(self.session, m)
+        m.get.assert_called_with(
+            'https://lastpass.com/logout.php?mobile=1',
+            cookies={'PHPSESSID': self.session_id}
+        )
+
+    def test_logout_raises_an_exception_on_HTTP_error(self):
+        m = mock.Mock()
+        m.post.return_value = self._http_error()
+        self.assertRaises(lastpass.NetworkError, fetcher.logout, self.session, m)
 
     def test_request_iteration_count_makes_a_post_request(self):
         m = mock.Mock()
@@ -68,14 +88,19 @@ class FetcherTestCase(unittest.TestCase):
         self.assertRaises(lastpass.InvalidResponseError, fetcher.request_iteration_count, self.username, m)
 
     def test_request_login_makes_a_post_request(self):
-        self._verify_request_login_post_request(None, self.login_post_data)
+        self._verify_request_login_post_request(None, None, self.login_post_data)
+
+    def test_request_login_makes_a_post_request_with_device_id(self):
+        self._verify_request_login_post_request(None, self.device_id, self.login_post_data_with_device_id)
 
     def test_request_login_makes_a_post_request_with_google_authenticator_code(self):
         self._verify_request_login_post_request(self.google_authenticator_code,
+                                                None,
                                                 self.login_post_data_with_google_authenticator_code)
 
     def test_request_login_makes_a_post_request_with_yubikey_password(self):
         self._verify_request_login_post_request(self.yubikey_password,
+                                                None,
                                                 self.login_post_data_with_yubikey_password)
 
     def test_request_login_returns_a_session(self):
@@ -172,10 +197,10 @@ class FetcherTestCase(unittest.TestCase):
         for iterations, hash in hashes:
             self.assertEqual(hash, fetcher.make_hash('postlass@gmail.com', 'pl1234567890', iterations))
 
-    def _verify_request_login_post_request(self, multifactor_password, post_data):
+    def _verify_request_login_post_request(self, multifactor_password, device_id, post_data):
         m = mock.Mock()
         m.post.return_value = self._http_ok('<ok sessionid="{}" />'.format(self.session_id))
-        fetcher.request_login(self.username, self.password, self.key_iteration_count, multifactor_password, m)
+        fetcher.request_login(self.username, self.password, self.key_iteration_count, multifactor_password, device_id, m)
         m.post.assert_called_with('https://lastpass.com/login.php', data=post_data)
 
     @staticmethod
@@ -212,4 +237,4 @@ class FetcherTestCase(unittest.TestCase):
     def _request_login_with_response(self, response):
         m = mock.Mock()
         m.post.return_value = response
-        return fetcher.request_login(self.username, self.password, self.key_iteration_count, None, m)
+        return fetcher.request_login(self.username, self.password, self.key_iteration_count, None, None, m)

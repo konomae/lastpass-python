@@ -63,18 +63,19 @@ def parse_ACCT(chunk, encryption_key):
 
     if len(notes) == 0:
         notes = None
-    # Parse secure note
-    if secure_note == b"1":
-        skip_item(io, 17)
-        secure_note_type = read_item(io)
 
-        # Only "Server" secure note stores account information
-        if secure_note_type not in ALLOWED_SECURE_NOTE_TYPES:
+    # Parse secure note
+    if secure_note == b'1':
+        parsed = parse_secure_note_server(notes)
+
+        if parsed['type'] not in ALLOWED_SECURE_NOTE_TYPES:
             return None
 
-        url, username, password = parse_secure_note_server(notes)
+        url = parsed.get('url', url)
+        username = parsed.get('username', username)
+        password = parsed.get('password', password)
 
-    return Account(id, name, username, password, url, group, notes=notes)
+    return Account(id, name, username, password, url, group, notes)
 
 
 def parse_PRIK(chunk, encryption_key):
@@ -120,9 +121,7 @@ def parse_SHAR(chunk, encryption_key, rsa_key):
 
 
 def parse_secure_note_server(notes):
-    url = None
-    username = None
-    password = None
+    info = {}
 
     for i in notes.split(b'\n'):
         if not i:  # blank line
@@ -130,14 +129,16 @@ def parse_secure_note_server(notes):
         # Split only once so that strings like "Hostname:host.example.com:80"
         # get interpreted correctly
         key, value = i.split(b':', 1)
-        if key == b'Hostname':
-            url = value
+        if key == b'NoteType':
+            info['type'] = value
+        elif key == b'Hostname':
+            info['url'] = value
         elif key == b'Username':
-            username = value
+            info['username'] = value
         elif key == b'Password':
-            password = value
+            info['password'] = value
 
-    return [url, username, password]
+    return info
 
 
 def read_chunk(stream):

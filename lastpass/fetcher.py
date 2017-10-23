@@ -2,8 +2,6 @@
 import hashlib
 from base64 import b64decode
 from binascii import hexlify
-from Crypto.Hash import HMAC, SHA256
-from Crypto.Protocol.KDF import PBKDF2
 import requests
 from xml.etree import ElementTree as etree
 from . import blob
@@ -137,18 +135,17 @@ def make_key(username, password, key_iteration_count):
     if key_iteration_count == 1:
         return hashlib.sha256(username.encode() + password.encode()).digest()
     else:
-        prf = lambda p, s: HMAC.new(p, s, SHA256).digest()
-        return PBKDF2(password.encode(), username.encode(), 32, key_iteration_count, prf)
+        return hashlib.pbkdf2_hmac('sha256', password.encode(), username.encode(), key_iteration_count, 32)
 
 
 def make_hash(username, password, key_iteration_count):
     if key_iteration_count == 1:
         return bytearray(hashlib.sha256(hexlify(make_key(username, password, 1)) + password.encode()).hexdigest(), 'ascii')
     else:
-        prf = lambda p, s: HMAC.new(p, s, SHA256).digest()
-        return hexlify(PBKDF2(
+        return hexlify(hashlib.pbkdf2_hmac(
+            'sha256',
             make_key(username, password, key_iteration_count),
             password.encode(),
-            32,
             1,
-            prf))
+            32
+        ))

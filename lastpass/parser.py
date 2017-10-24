@@ -61,9 +61,6 @@ def parse_ACCT(chunk, encryption_key):
     skip_item(io, 2)
     secure_note = read_item(io)
 
-    if len(notes) == 0:
-        notes = None
-
     # Parse secure note
     if secure_note == b'1':
         parsed = parse_secure_note_server(notes)

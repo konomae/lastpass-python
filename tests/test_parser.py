@@ -194,7 +194,7 @@ class ParserTestCase(unittest.TestCase):
         })
 
     def test_parse_secure_note_server_returns_empty_dict_if_empty_str(self):
-        notes = ''
+        notes = b''
         result = parser.parse_secure_note_server(notes)
 
         self.assertTrue(isinstance(result, dict))

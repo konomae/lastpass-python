@@ -124,8 +124,12 @@ def parse_secure_note_server(notes):
     info = {}
 
     for i in notes.split(b'\n'):
-        if not i or b':' not in i:  # blank line or no ::  # blank line
+        if not i:  # blank line
             continue
+
+        if b':' not in i:  # there is no `:` if generic note
+            continue
+
         # Split only once so that strings like "Hostname:host.example.com:80"
         # get interpreted correctly
         key, value = i.split(b':', 1)

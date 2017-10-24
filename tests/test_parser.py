@@ -193,6 +193,13 @@ class ParserTestCase(unittest.TestCase):
             'password': password,
         })
 
+    def test_parse_secure_note_server_returns_empty_dict_if_empty_str(self):
+        notes = ''
+        result = parser.parse_secure_note_server(notes)
+
+        self.assertTrue(isinstance(result, dict))
+        self.assertDictEqual(result, {})
+
     def test_read_chunk_returns_a_chunk(self):
         io = BytesIO(codecs.decode('4142434400000004DEADBEEF' + self.padding, 'hex_codec'))
         self.assertEqual(parser.read_chunk(io), Chunk(b'ABCD', codecs.decode('DEADBEEF', 'hex_codec')))

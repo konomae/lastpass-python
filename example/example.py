@@ -15,8 +15,8 @@ DEVICE_ID = "example.py"
 
 with open(os.path.join(os.path.dirname(__file__), 'credentials.json')) as f:
     credentials = json.load(f)
-    username = str(credentials['username'])
-    password = str(credentials['password'])
+    username = credentials['username']
+    password = credentials['password']
 
 try:
     # First try without a multifactor password

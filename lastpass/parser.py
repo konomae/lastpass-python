@@ -68,7 +68,7 @@ def parse_ACCT(chunk, encryption_key):
     if secure_note == b'1':
         parsed = parse_secure_note_server(notes)
 
-        if parsed['type'] not in ALLOWED_SECURE_NOTE_TYPES:
+        if parsed.get('type') not in ALLOWED_SECURE_NOTE_TYPES:
             return None
 
         url = parsed.get('url', url)

@@ -60,5 +60,5 @@ or test all environments and pep8 with tox
 License
 -------
 
-`The MIT License <http://opensource.org/licenses/mit-license.php>`_
+`The MIT License <https://opensource.org/licenses/mit-license.php>`_
 

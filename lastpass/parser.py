@@ -65,12 +65,10 @@ def parse_ACCT(chunk, encryption_key):
     if secure_note == b'1':
         parsed = parse_secure_note_server(notes)
 
-        if parsed.get('type') not in ALLOWED_SECURE_NOTE_TYPES:
-            return None
-
-        url = parsed.get('url', url)
-        username = parsed.get('username', username)
-        password = parsed.get('password', password)
+        if parsed.get('type') in ALLOWED_SECURE_NOTE_TYPES:
+            url = parsed.get('url', url)
+            username = parsed.get('username', username)
+            password = parsed.get('password', password)
 
     return Account(id, name, username, password, url, group, notes)
 

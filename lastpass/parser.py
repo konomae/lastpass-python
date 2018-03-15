@@ -6,16 +6,13 @@ from io import BytesIO
 import struct
 import re
 
-from Crypto.Cipher import AES
+from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Util import number
 from Crypto.PublicKey import RSA
 
 from .account import Account
 from .chunk import Chunk
 
-
-# OpenSSL constant
-RSA_PKCS1_OAEP_PADDING = 4
 
 # Secure note types that contain account-like information
 ALLOWED_SECURE_NOTE_TYPES = [
@@ -104,8 +101,7 @@ def parse_SHAR(chunk, encryption_key, rsa_key):
     # When the key is blank, then there's a RSA encrypted key, which has to
     # be decrypted first before use.
     if not key:
-        # TODO: rsa_key.private_decrypt(encrypted_key, RSA_PKCS1_OAEP_PADDING)
-        key = decode_hex(rsa_key.decrypt(encrypted_key))
+        key = decode_hex(PKCS1_OAEP.new(rsa_key).decrypt(encrypted_key))
     else:
         key = decode_hex(decode_aes256_plain_auto(key, encryption_key))
 

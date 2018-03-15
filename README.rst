@@ -56,6 +56,15 @@ or test all environments and pep8 with tox
     $ tox
 
 
+Releasing
+---------
+
+.. code-block:: bash
+
+    $ pip install twine
+    $ python setup.py sdist
+    $ twine upload dist/*
+
 
 License
 -------

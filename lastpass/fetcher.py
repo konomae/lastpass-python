@@ -1,5 +1,7 @@
 # coding: utf-8
 import hashlib
+import random
+import string
 from base64 import b64decode
 from binascii import hexlify
 import requests
@@ -13,6 +15,8 @@ from .exceptions import (
     LastPassInvalidPasswordError,
     LastPassIncorrectGoogleAuthenticatorCodeError,
     LastPassIncorrectYubikeyPasswordError,
+    LastPassIncorrectOutOfBandRequiredError,
+    LastPassIncorrectMultiFactorResponseError,
     LastPassUnknownError
 )
 from .session import Session
@@ -21,9 +25,9 @@ from .session import Session
 http = requests
 
 
-def login(username, password, multifactor_password=None, client_id=None):
+def login(username, password, multifactor_password=None, client_id=None, trust_id=None, trust_me=False):
     key_iteration_count = request_iteration_count(username)
-    return request_login(username, password, key_iteration_count, multifactor_password, client_id)
+    return request_login(username, password, key_iteration_count, multifactor_password, client_id, trust_id=trust_id, trust_me=trust_me)
 
 
 def logout(session, web_client=http):
@@ -63,21 +67,28 @@ def request_iteration_count(username, web_client=http):
     raise InvalidResponseError('Key iteration count is not positive')
 
 
-def request_login(username, password, key_iteration_count, multifactor_password=None, client_id=None, web_client=http):
+def request_login(username, password, key_iteration_count, multifactor_password=None, client_id=None, web_client=http, trust_id=None, trust_me=False):
     body = {
-        'method': 'mobile',
-        'web': 1,
-        'xml': 1,
+        'method': 'cli',
+        'xml': 2,
         'username': username,
         'hash': make_hash(username, password, key_iteration_count),
         'iterations': key_iteration_count,
+        'includeprivatekeyenc': 1,
+        'outofbandsupported': 1
     }
 
     if multifactor_password:
         body['otp'] = multifactor_password
 
+    if trust_me and not trust_id:
+        trust_id = generate_trust_id()
+
+    if trust_id:
+        body['uuid'] = trust_id
+
     if client_id:
-        body['imei'] = client_id
+        body['trustlabel'] = client_id
 
     response = web_client.post('https://lastpass.com/login.php',
                                data=body)
@@ -93,17 +104,75 @@ def request_login(username, password, key_iteration_count, multifactor_password=
     if parsed_response is None:
         raise InvalidResponseError()
 
-    session = create_session(parsed_response, key_iteration_count)
+    session = create_session(parsed_response, key_iteration_count, trust_id)
     if not session:
-        raise login_error(parsed_response)
+        try:
+            raise login_error(parsed_response)
+        except LastPassIncorrectOutOfBandRequiredError:
+            (session, parsed_response) = oob_login(web_client, parsed_response, body, key_iteration_count, trust_id)
+            if not session:
+                raise login_error(parsed_response)
+    if trust_me:
+        response = web_client.post('https://lastpass.com/trust.php', cookies={'PHPSESSID': session.id}, data={"token": session.token, "uuid": trust_id, "trustlabel": client_id})
+
     return session
 
 
-def create_session(parsed_response, key_iteration_count):
+def oob_login(web_client, parsed_response, body, key_iteration_count, trust_id):
+    error = None if parsed_response.tag != 'response' else parsed_response.find(
+        'error')
+    if 'outofbandname' not in error.attrib or 'capabilities' not in error.attrib:
+        return (None, parsed_response)
+    oob_name = error.attrib['outofbandname']
+    oob_capabilities = error.attrib['capabilities'].split(',')
+    can_do_passcode = 'passcode' in oob_capabilities
+    if can_do_passcode and 'outofband' not in oob_capabilities:
+        return (None, parsed_response)
+    body['outofbandrequest'] = '1'
+    retries = 0
+    # loop waiting for out of band approval, or failure
+    while retries < 5:
+        retries += 1
+        response = web_client.post("https://lastpass.com/login.php", data=body)
+        if response.status_code != requests.codes.ok:
+            raise NetworkError()
+
+        try:
+            parsed_response = etree.fromstring(response.content)
+        except etree.ParseError:
+            parsed_response = None
+
+        if parsed_response is None:
+            raise InvalidResponseError()
+
+        session = create_session(parsed_response, key_iteration_count, trust_id)
+        if session:
+            return (session, parsed_response)
+        error = None if parsed_response.tag != 'response' else parsed_response.find(
+            'error')
+        if 'cause' in error.attrib and error.attrib['cause'] == 'outofbandrequired':
+            if 'retryid' in error.attrib:
+                body['outofbandretryid'] = error.attrib['retryid']
+            body['outofbandretry'] = "1"
+            continue
+        return (None, parsed_response)
+    return (None, parsed_response)
+
+
+def generate_trust_id():
+    return ''.join(random.choice(string.ascii_uppercase + string.digits + string.ascii_lowercase + "!@#$") for _ in range(32))
+
+
+def create_session(parsed_response, key_iteration_count, trust_id):
     if parsed_response.tag == 'ok':
-        session_id = parsed_response.attrib.get('sessionid')
+        ok_response = parsed_response
+    else:
+        ok_response = parsed_response.find("ok")
+    if ok_response is not None:
+        session_id = ok_response.attrib.get('sessionid')
+        token = ok_response.attrib.get('token')
         if isinstance(session_id, str):
-            return Session(session_id, key_iteration_count)
+            return Session(session_id, key_iteration_count, token, trust_id)
 
 
 def login_error(parsed_response):
@@ -117,6 +186,8 @@ def login_error(parsed_response):
         "googleauthrequired": LastPassIncorrectGoogleAuthenticatorCodeError,
         "googleauthfailed": LastPassIncorrectGoogleAuthenticatorCodeError,
         "yubikeyrestricted": LastPassIncorrectYubikeyPasswordError,
+        "outofbandrequired": LastPassIncorrectOutOfBandRequiredError,
+        "multifactorresponsefailed": LastPassIncorrectMultiFactorResponseError,
     }
 
     cause = error.attrib.get('cause')

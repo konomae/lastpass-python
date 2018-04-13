@@ -49,6 +49,16 @@ class LastPassIncorrectYubikeyPasswordError(Error):
     pass
 
 
+class LastPassIncorrectOutOfBandRequiredError(Error):
+    """LastPass error: need to provide out of band authentication (e.g, LastPass Authenticator)"""
+    pass
+
+
+class LastPassIncorrectMultiFactorResponseError(Error):
+    """LastPass error: Multifactor response failed (wrong code or denied)"""
+    pass
+
+
 class LastPassUnknownError(Error):
     """LastPass error we don't know about"""
     pass

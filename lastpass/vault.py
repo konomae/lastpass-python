@@ -6,10 +6,10 @@ from .exceptions import InvalidResponseError
 
 class Vault(object):
     @classmethod
-    def open_remote(cls, username, password, multifactor_password=None, client_id=None):
+    def open_remote(cls, username, password, multifactor_password=None, client_id=None, trust_id=None, trust_me=False):
         """Fetches a blob from the server and creates a vault"""
-        blob = cls.fetch_blob(username, password, multifactor_password, client_id)
-        return cls.open(blob, username, password)
+        (blob, trust_id) = cls.fetch_blob(username, password, multifactor_password, client_id, trust_id, trust_me)
+        return cls.open(blob, username, password, trust_id)
 
     @classmethod
     def open_local(cls, blob_filename, username, password):
@@ -18,20 +18,20 @@ class Vault(object):
         raise NotImplementedError()
 
     @classmethod
-    def open(cls, blob, username, password):
+    def open(cls, blob, username, password, trust_id=None):
         """Creates a vault from a blob object"""
-        return cls(blob, blob.encryption_key(username, password))
+        return cls(blob, blob.encryption_key(username, password), trust_id)
 
     @classmethod
-    def fetch_blob(cls, username, password, multifactor_password=None, client_id=None):
+    def fetch_blob(cls, username, password, multifactor_password=None, client_id=None, trust_id=None, trust_me=False):
         """Just fetches the blob, could be used to store it locally"""
-        session = fetcher.login(username, password, multifactor_password, client_id)
+        session = fetcher.login(username, password, multifactor_password, client_id, trust_id=trust_id, trust_me=trust_me)
         blob = fetcher.fetch(session)
         fetcher.logout(session)
 
-        return blob
+        return (blob, session.trust_id)
 
-    def __init__(self, blob, encryption_key):
+    def __init__(self, blob, encryption_key, trust_id=None):
         """This more of an internal method, use one of the static constructors instead"""
         chunks = parser.extract_chunks(blob)
 
@@ -39,6 +39,7 @@ class Vault(object):
             raise InvalidResponseError('Blob is truncated')
 
         self.accounts = self.parse_accounts(chunks, encryption_key)
+        self.trust_id = trust_id
 
     def is_complete(self, chunks):
         return len(chunks) > 0 and chunks[-1].id == b'ENDM' and chunks[-1].payload == b'OK'

@@ -2,6 +2,8 @@
 from base64 import b64decode
 import unittest
 import mock
+from nose.tools import assert_raises
+
 import lastpass
 from lastpass.blob import Blob
 from lastpass import fetcher
@@ -167,7 +169,9 @@ class FetcherTestCase(unittest.TestCase):
     def test_fetch_raises_exception_on_http_error(self):
         m = mock.Mock()
         m.get.return_value = self._http_error()
-        self.assertRaises(lastpass.NetworkError, fetcher.fetch, self.session, m)
+        with assert_raises(lastpass.NetworkError) as e:
+            fetcher.fetch(self.session, m)
+        self.assertEqual(str(e.exception), "404 Not Found")
 
     def test_make_key_generates_correct_keys(self):
         keys = [
@@ -204,17 +208,18 @@ class FetcherTestCase(unittest.TestCase):
         m.post.assert_called_with('https://lastpass.com/login.php', data=post_data)
 
     @staticmethod
-    def _mock_response(code, body):
+    def _mock_response(code, body, reason=""):
         m = mock.Mock()
         m.status_code = code
         m.content = body
+        m.reason = reason
         return m
 
     def _http_ok(self, body):
-        return self._mock_response(200, body)
+        return self._mock_response(200, body, "OK")
 
     def _http_error(self, body=''):
-        return self._mock_response(404, body)
+        return self._mock_response(404, body, "Not Found")
 
     @staticmethod
     def _lastpass_error(cause, message):

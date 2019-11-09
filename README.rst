@@ -1,8 +1,8 @@
 LastPass Python API
 ===================
 
-.. image:: https://travis-ci.org/konomae/lastpass-python.svg?branch=master
-  :target: https://travis-ci.org/konomae/lastpass-python
+.. image:: https://github.com/konomae/lastpass-python/workflows/CI/badge.svg
+  :target: https://github.com/konomae/lastpass-python/actions
 
 .. image:: https://codecov.io/gh/konomae/lastpass-python/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/konomae/lastpass-python

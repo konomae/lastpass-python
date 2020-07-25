@@ -11,6 +11,8 @@ LastPass Python API
 
 **This is unofficial LastPass API**
 
+Lastpass Authenticator reverse engineering by `Terry Hardie <https://github.com/thardie>`_
+
 
 Install
 -------
@@ -31,6 +33,9 @@ Example
     vault = lastpass.Vault.open_remote(username, password)
     for i in vault.accounts:
         print(i.id, i.username, i.password, i.url)
+
+    for i in vault.authenticator:
+        print(i.accountID, i.issuerName, i.userName, i.secret)
 
 
 

@@ -5,6 +5,7 @@ import codecs
 from io import BytesIO
 import struct
 import re
+import json
 
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Util import number
@@ -12,6 +13,7 @@ from Crypto.PublicKey import RSA
 
 from .account import Account
 from .chunk import Chunk
+from .authenticator import Authenticator
 
 
 # Secure note types that contain account-like information
@@ -35,6 +37,26 @@ def extract_chunks(blob):
         chunks.append(read_chunk(stream))
 
     return chunks
+
+
+def parse_Authenticator(chunk, encryption_key):
+    json_result = decode_aes256_base64_auto(chunk.bytes, encryption_key)
+    decoded_json_result = json.loads(json_result)
+    accounts = []
+    for account in decoded_json_result['accounts']:
+        accounts.append(Authenticator(
+            accountID=account['accountID'],
+            digits=account['digits'],
+            issuerName=account['issuerName'],
+            lmiUserId=account['lmiUserId'],
+            originalIssuerName=account['originalIssuerName'],
+            originalUserName=account['originalUserName'],
+            pushNotification=account['pushNotification'],
+            secret=account['secret'],
+            timeStep=account['timeStep'],
+            userName=account['userName'],
+        ))
+    return accounts
 
 
 def parse_ACCT(chunk, encryption_key):

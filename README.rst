@@ -38,7 +38,6 @@ Example
         print(i.accountID, i.issuerName, i.userName, i.secret)
 
 
-
 Testing
 -------
 

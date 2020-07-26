@@ -30,7 +30,7 @@ class Vault(object):
         authenticator_blob = fetcher.fetch_authenticator(session)
         fetcher.logout(session)
 
-        return blob,authenticator_blob
+        return blob, authenticator_blob
 
     def __init__(self, blob, authenticator_blob, encryption_key):
         """This more of an internal method, use one of the static constructors instead"""
@@ -41,7 +41,6 @@ class Vault(object):
 
         self.accounts = self.parse_accounts(chunks, encryption_key)
         self.authenticator = self.parse_authenticator(authenticator_blob, encryption_key)
-
 
     def is_complete(self, chunks):
         return len(chunks) > 0 and chunks[-1].id == b'ENDM' and chunks[-1].payload == b'OK'
@@ -66,7 +65,5 @@ class Vault(object):
 
         return accounts
 
-
     def parse_authenticator(self, chunks, encryption_key):
         return parser.parse_Authenticator(chunks, encryption_key)
-

@@ -54,6 +54,7 @@ def fetch(session, web_client=http):
                           'https://lastpass.com/getaccts.php?mobile=1&b64=1&hash=0.0&hasplugin=3.0.23&requestsrc=android',
                           cookies={'PHPSESSID': session.id})
 
+
 def fetch_override(session,
                    web_client=http,
                    url='https://lastpass.com/getaccts.php?mobile=1&b64=1&hash=0.0&hasplugin=3.0.23&requestsrc=android',

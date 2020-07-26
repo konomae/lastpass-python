@@ -6,18 +6,19 @@ import struct
 from lastpass import InvalidResponseError
 from lastpass.blob import Blob
 from lastpass.vault import Vault
-from tests.test_data import TEST_BLOB, TEST_KEY_ITERATION_COUNT, TEST_ENCRYPTION_KEY, TEST_ACCOUNTS
+from tests.test_data import TEST_BLOB, TEST_KEY_ITERATION_COUNT, TEST_ENCRYPTION_KEY, TEST_ACCOUNTS, TEST_AUTHENTICATOR
 
 
 class VaultTestCase(unittest.TestCase):
     def setUp(self):
-        self.vault = Vault(Blob(TEST_BLOB, TEST_KEY_ITERATION_COUNT), TEST_ENCRYPTION_KEY)
+        self.vault = Vault(Blob(TEST_BLOB, TEST_KEY_ITERATION_COUNT), Blob(TEST_AUTHENTICATOR, TEST_KEY_ITERATION_COUNT), TEST_ENCRYPTION_KEY)
 
     def test_init_raises_an_exception_on_truncated_blob(self):
         for i in [1, 2, 3, 4, 5, 10, 100, 1000]:
             blob = Blob(TEST_BLOB[:-i], TEST_KEY_ITERATION_COUNT)
+            authenticator_blob = Blob(TEST_AUTHENTICATOR, TEST_KEY_ITERATION_COUNT)
             with self.assertRaises(Exception) as context:
-                Vault(blob, TEST_ENCRYPTION_KEY)
+                Vault(blob, authenticator_blob, TEST_ENCRYPTION_KEY)
 
             self.assertIn(type(context.exception), [InvalidResponseError, struct.error])
             # self.assertEqual(context.exception.message, 'Blob is truncated')

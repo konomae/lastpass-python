@@ -41,6 +41,7 @@ def extract_chunks(blob):
 
 def parse_Authenticator(chunk, encryption_key):
     json_result = decode_aes256_base64_auto(chunk.bytes, encryption_key)
+    print(json_result)
     decoded_json_result = json.loads(json_result)
     accounts = []
     for account in decoded_json_result['accounts']:

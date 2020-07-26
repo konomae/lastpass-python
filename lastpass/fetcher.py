@@ -44,7 +44,8 @@ def fetch_authenticator(session, web_client=http):
                           headers={
                               'X-CSRF-TOKEN': session.csrf_token,
                               'X-SESSION-ID': session.id,
-                          })
+                          },
+                          decode_json=True)
 
 
 def fetch(session, web_client=http):
@@ -57,15 +58,19 @@ def fetch_override(session,
                    web_client=http,
                    url='https://lastpass.com/getaccts.php?mobile=1&b64=1&hash=0.0&hasplugin=3.0.23&requestsrc=android',
                    cookies=None,
-                   headers=None):
+                   headers=None,
+                   decode_json=False):
     response = web_client.get(url, cookies=cookies, headers=headers)
 
     if response.status_code != requests.codes.ok:
         raise NetworkError()
 
-    if response.headers['content-type'].startswith('application/json'):
-        data = json.loads(response.content)
-        return blob.Blob(data['userData'].encode('utf-8'), session.key_iteration_count)
+    if decode_json:
+        if 'content-type' in response.headers and response.headers['content-type'].startswith('application/json'):
+            data = json.loads(response.content)
+            return blob.Blob(data['userData'].encode('utf-8'), session.key_iteration_count)
+        else:
+            raise InvalidResponseError('Expected JSON response')
     else:
         return blob.Blob(decode_blob(response.content), session.key_iteration_count)
 

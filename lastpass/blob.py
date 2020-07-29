@@ -1,7 +1,7 @@
 # coding: utf-8
 class Blob(object):
-    def __init__(self, bytes, key_iteration_count):
-        self.bytes = bytes
+    def __init__(self, bytes_, key_iteration_count):
+        self.bytes = bytes_
         self.key_iteration_count = key_iteration_count
 
     def encryption_key(self, username, password):

@@ -1,26 +1,47 @@
 # coding: utf-8
-from base64 import b64decode
+from base64 import b64decode, b64encode
 import binascii
 import codecs
 from io import BytesIO
+import os
 import struct
 import re
+import zlib
 
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Util import number
 from Crypto.PublicKey import RSA
 
-from .account import Account
+from .account import Account, SecureNote
 from .chunk import Chunk
 
 
 # Secure note types that contain account-like information
 ALLOWED_SECURE_NOTE_TYPES = [
+    None,
     b"Server",
-    b"Email Account",
+    b"SSH Key",
     b"Database",
+    b"Stripe Key",
+    b"Passport",
+    b"Membership",
+    b"Wi-Fi Password",
+    b"Software License",
+    b"Social Security",
+    b"Address",
+    b"Bank Account",
+    b"Credit Card",
+    b"Email Account",
+    b"Health Insurance",
+    b"Insurance",
     b"Instant Messenger",
+    b"Generic",
+    b"Custom",
 ]
+
+random = os.urandom
+compress = zlib.compress
+decompress = zlib.decompress
 
 
 def extract_chunks(blob):
@@ -60,12 +81,13 @@ def parse_ACCT(chunk, encryption_key):
 
     # Parse secure note
     if secure_note == b'1':
+        secure_notes = SecureNote()
         parsed = parse_secure_note_server(notes)
-
-        if parsed.get('type') in ALLOWED_SECURE_NOTE_TYPES:
-            url = parsed.get('url', url)
-            username = parsed.get('username', username)
-            password = parsed.get('password', password)
+        parsed_type = parsed.get('type')
+        if parsed_type in ALLOWED_SECURE_NOTE_TYPES:
+            for key in parsed:
+                setattr(secure_notes, key, parsed[key])
+            notes = secure_notes
 
     return Account(id, name, username, password, url, group, notes)
 
@@ -113,17 +135,28 @@ def parse_SHAR(chunk, encryption_key, rsa_key):
 
 def parse_secure_note_server(notes):
     info = {}
+    last_field = None
+    unparsed_counter = 0
 
-    for i in notes.split(b'\n'):
-        if not i:  # blank line
-            continue
+    for line in notes.split(b'\n'):
 
-        if b':' not in i:  # there is no `:` if generic note
+        if not line:
+            if not last_field:
+                continue
+
+        if b':' not in line:  # there is no `:` if generic note
+            if not last_field:
+                last_field = 'unparsed_notes_{}'.format(unparsed_counter)
+                unparsed_counter = unparsed_counter + 1
+                info[last_field] = b''
+            if last_field:
+                old_bytes = info[last_field]
+                info[last_field] = (old_bytes.decode() + '\n' + line.decode()).encode()
             continue
 
         # Split only once so that strings like "Hostname:host.example.com:80"
         # get interpreted correctly
-        key, value = i.split(b':', 1)
+        key, value = line.split(b':', 1)
         if key == b'NoteType':
             info['type'] = value
         elif key == b'Hostname':
@@ -132,6 +165,9 @@ def parse_secure_note_server(notes):
             info['username'] = value
         elif key == b'Password':
             info['password'] = value
+        else:
+            last_field = key.decode().strip()
+            info[last_field] = value
 
     return info
 
@@ -163,7 +199,7 @@ def read_item(stream):
 
 def skip_item(stream, times=1):
     """Skips an item in a stream."""
-    for i in range(times):
+    for _ in range(times):
         read_item(stream)
 
 
@@ -195,9 +231,17 @@ def decode_hex(data):
         raise TypeError()
 
 
-def decode_base64(data):
+def decode_base64(b64data):
     """Decodes a base64 encoded string into raw bytes."""
-    return b64decode(data)
+    # see http://passingcuriosity.com/2009/aes-encryption-in-python-with-m2crypto/
+    data = b64decode(b64data)
+    return data
+
+
+def encode_base64(data):
+    """Encodes raw bytes into a base64 encoded string."""
+    b64data = b64encode(data)
+    return b64data
 
 
 def decode_aes256_plain_auto(data, encryption_key):
@@ -207,10 +251,9 @@ def decode_aes256_plain_auto(data, encryption_key):
 
     if length == 0:
         return b''
-    elif data[0] == b'!'[0] and length % 16 == 1 and length > 32:
+    if data[0] == b'!'[0] and length % 16 == 1 and length > 32:
         return decode_aes256_cbc_plain(data, encryption_key)
-    else:
-        return decode_aes256_ecb_plain(data, encryption_key)
+    return decode_aes256_ecb_plain(data, encryption_key)
 
 
 def decode_aes256_base64_auto(data, encryption_key):
@@ -220,18 +263,16 @@ def decode_aes256_base64_auto(data, encryption_key):
 
     if length == 0:
         return b''
-    elif data[0] == b'!'[0]:
+    if data[0] == b'!'[0]:
         return decode_aes256_cbc_base64(data, encryption_key)
-    else:
-        return decode_aes256_ecb_base64(data, encryption_key)
+    return decode_aes256_ecb_base64(data, encryption_key)
 
 
 def decode_aes256_ecb_plain(data, encryption_key):
     """Decrypts AES-256 ECB bytes."""
     if not data:
         return b''
-    else:
-        return decode_aes256('ecb', '', data, encryption_key)
+    return decode_aes256('ecb', '', data, encryption_key)
 
 
 def decode_aes256_ecb_base64(data, encryption_key):
@@ -243,27 +284,73 @@ def decode_aes256_cbc_plain(data, encryption_key):
     """Decrypts AES-256 CBC bytes."""
     if not data:
         return b''
-    else:
-        # LastPass AES-256/CBC encryted string starts with an "!".
-        # Next 16 bytes are the IV for the cipher.
-        # And the rest is the encrypted payload.
-        return decode_aes256('cbc', data[1:17], data[17:], encryption_key)
+    # LastPass AES-256/CBC encryted string starts with an "!".
+    # Next 16 bytes are the IV for the cipher.
+    # And the rest is the encrypted payload.
+    return decode_aes256('cbc', data[1:17], data[17:], encryption_key)
 
 
 def decode_aes256_cbc_base64(data, encryption_key):
     """Decrypts base64 encoded AES-256 CBC bytes."""
     if not data:
         return b''
-    else:
-        # LastPass AES-256/CBC/base64 encryted string starts with an "!".
-        # Next 24 bytes are the base64 encoded IV for the cipher.
-        # Then comes the "|".
-        # And the rest is the base64 encoded encrypted payload.
-        return decode_aes256(
-            'cbc',
-            decode_base64(data[1:25]),
-            decode_base64(data[26:]),
-            encryption_key)
+    # LastPass AES-256/CBC/base64 encryted string starts with an "!".
+    # Next 24 bytes are the base64 encoded IV for the cipher.
+    # Then comes the "|".
+    # And the rest is the base64 encoded encrypted payload.
+    return decode_aes256(
+        'cbc',
+        decode_base64(data[1:25]),
+        decode_base64(data[26:]),
+        encryption_key)
+
+
+def encode_aes256_cbc_base64(cleartext, encryption_key, iv):
+    """Encrypts base64 encoded AES-256 CBC bytes."""
+    if not cleartext:
+        return b''
+    # LastPass AES-256/CBC/base64 encryted string starts with an "!".
+    # Next 24 bytes are the base64 encoded IV for the cipher.
+    # Then comes the "|".
+    # And the rest is the base64 encoded encrypted payload.
+    return b'!' + b"%24s" % encode_base64(iv) + b'|' + encode_base64(encode_aes256('cbc', iv, cleartext, encryption_key))
+
+
+def pad(data):
+    """
+    Pad Data to PKCS 5 Encoding.
+    """
+    BS = 16
+    # see http://passingcuriosity.com/2009/aes-encryption-in-python-with-m2crypto/
+    padded = (BS - len(data) % BS) * chr(BS - len(data) % BS)
+    if isinstance(data, str):
+        try:
+            data = str.encode(data, 'latin1')
+        except Exception:
+            data = bytes(data)
+    if isinstance(padded, str):
+        try:
+            padded = str.encode(padded, 'latin1')
+        except Exception:
+            padded = bytes(data)
+    try:
+        result = bytes(data + padded)
+    except Exception:
+        result = data + padded
+    return result
+
+
+def unpad(data):
+    """
+    Unpad Data from PKCS 5 Encoding.
+    """
+    # see http://passingcuriosity.com/2009/aes-encryption-in-python-with-m2crypto/
+    if isinstance(data, str):
+        try:
+            data = str.encode(data, 'latin1')
+        except Exception:
+            data = bytes(data)
+    return data[0:-ord(data[-1:])]
 
 
 def decode_aes256(cipher, iv, data, encryption_key):
@@ -278,7 +365,19 @@ def decode_aes256(cipher, iv, data, encryption_key):
         aes = AES.new(encryption_key, AES.MODE_ECB)
     else:
         raise ValueError('Unknown AES mode')
-    d = aes.decrypt(data)
-    # http://passingcuriosity.com/2009/aes-encryption-in-python-with-m2crypto/
-    unpad = lambda s: s[0:-ord(d[-1:])]
-    return unpad(d)
+    return unpad(aes.decrypt(data))
+
+
+def encode_aes256(cipher, iv, data, encryption_key):
+    """
+    Encrypt AES-256 bytes.
+    Allowed ciphers are: :ecb, :cbc.
+    If for :ecb iv is not used and should be set to "".
+    """
+    if cipher == 'cbc':
+        aes = AES.new(encryption_key, AES.MODE_CBC, iv)
+    elif cipher == 'ecb':
+        aes = AES.new(encryption_key, AES.MODE_ECB)
+    else:
+        raise ValueError('Unknown AES mode')
+    return aes.encrypt(pad(data))

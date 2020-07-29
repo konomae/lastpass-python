@@ -4,8 +4,9 @@ import random
 import string
 from base64 import b64decode
 from binascii import hexlify
-import requests
 from xml.etree import ElementTree as etree
+import requests
+
 from . import blob
 from .exceptions import (
     NetworkError,
@@ -59,7 +60,7 @@ def request_iteration_count(username, web_client=http):
 
     try:
         count = int(response.content)
-    except:
+    except Exception:
         raise InvalidResponseError('Key iteration count is invalid')
 
     if count > 0:
@@ -123,7 +124,6 @@ def oob_login(web_client, parsed_response, body, key_iteration_count, trust_id):
         'error')
     if 'outofbandname' not in error.attrib or 'capabilities' not in error.attrib:
         return (None, parsed_response)
-    oob_name = error.attrib['outofbandname']
     oob_capabilities = error.attrib['capabilities'].split(',')
     can_do_passcode = 'passcode' in oob_capabilities
     if can_do_passcode and 'outofband' not in oob_capabilities:
@@ -173,11 +173,12 @@ def create_session(parsed_response, key_iteration_count, trust_id):
         token = ok_response.attrib.get('token')
         if isinstance(session_id, str):
             return Session(session_id, key_iteration_count, token, trust_id)
+    return None
 
 
 def login_error(parsed_response):
     error = None if parsed_response.tag != 'response' else parsed_response.find('error')
-    if error is None or len(error.attrib) == 0:
+    if error is None or not error.attrib:
         raise UnknownResponseSchemaError()
 
     exceptions = {
@@ -198,27 +199,25 @@ def login_error(parsed_response):
     return InvalidResponseError(message)
 
 
-def decode_blob(blob):
-    return b64decode(blob)
+def decode_blob(blob_):
+    return b64decode(blob_)
 
 
 def make_key(username, password, key_iteration_count):
     # type: (str, str, int) -> bytes
     if key_iteration_count == 1:
         return hashlib.sha256(username.encode('utf-8') + password.encode('utf-8')).digest()
-    else:
-        return hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), username.encode('utf-8'), key_iteration_count, 32)
+    return hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), username.encode('utf-8'), key_iteration_count, 32)
 
 
 def make_hash(username, password, key_iteration_count):
     # type: (str, str, int) -> bytes
     if key_iteration_count == 1:
         return bytearray(hashlib.sha256(hexlify(make_key(username, password, 1)) + password.encode('utf-8')).hexdigest(), 'ascii')
-    else:
-        return hexlify(hashlib.pbkdf2_hmac(
-            'sha256',
-            make_key(username, password, key_iteration_count),
-            password.encode('utf-8'),
-            1,
-            32
-        ))
+    return hexlify(hashlib.pbkdf2_hmac(
+        'sha256',
+        make_key(username, password, key_iteration_count),
+        password.encode('utf-8'),
+        1,
+        32
+    ))

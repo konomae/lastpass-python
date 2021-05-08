@@ -60,7 +60,9 @@ class FetcherTestCase(unittest.TestCase):
         m = mock.Mock()
         m.post.return_value = self._http_ok(str(self.key_iteration_count))
         fetcher.request_iteration_count(self.username, m)
-        m.post.assert_called_with('https://lastpass.com/iterations.php', data={'email': self.username})
+        m.post.assert_called_with('https://lastpass.com/iterations.php',
+                                  data={'email': self.username},
+                                  headers=fetcher.headers)
 
     def test_request_iteration_count_returns_key_iteration_count(self):
         m = mock.Mock()
@@ -201,7 +203,9 @@ class FetcherTestCase(unittest.TestCase):
         m = mock.Mock()
         m.post.return_value = self._http_ok('<ok sessionid="{}" />'.format(self.session_id))
         fetcher.request_login(self.username, self.password, self.key_iteration_count, multifactor_password, device_id, m)
-        m.post.assert_called_with('https://lastpass.com/login.php', data=post_data)
+        m.post.assert_called_with('https://lastpass.com/login.php',
+                                  data=post_data,
+                                  headers=fetcher.headers)
 
     @staticmethod
     def _mock_response(code, body):

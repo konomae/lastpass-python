@@ -3,7 +3,7 @@ from setuptools import setup
 
 def get_version():
     import re
-    with open('lastpass/__init__.py', 'r') as f:
+    with open('lastpass/version.py', 'r') as f:
         for line in f:
             m = re.match(r'__version__ = [\'"]([^\'"]*)[\'"]', line)
             if m:

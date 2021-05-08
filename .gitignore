@@ -8,3 +8,4 @@ dist/
 
 .python-version
 .idea/
+.venv/

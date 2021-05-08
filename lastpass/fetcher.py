@@ -5,6 +5,7 @@ from binascii import hexlify
 import requests
 from xml.etree import ElementTree as etree
 from . import blob
+from .version import __version__
 from .exceptions import (
     NetworkError,
     InvalidResponseError,
@@ -19,8 +20,7 @@ from .session import Session
 
 
 http = requests
-
-headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36'}
+headers = {'user-agent': 'lastpass-python/{}'.format(__version__)}
 
 
 def login(username, password, multifactor_password=None, client_id=None):

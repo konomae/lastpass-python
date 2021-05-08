@@ -20,6 +20,7 @@ from .session import Session
 
 http = requests
 
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36'}
 
 def login(username, password, multifactor_password=None, client_id=None):
     key_iteration_count = request_iteration_count(username)
@@ -49,7 +50,8 @@ def fetch(session, web_client=http):
 
 def request_iteration_count(username, web_client=http):
     response = web_client.post('https://lastpass.com/iterations.php',
-                               data={'email': username})
+                               data={'email': username},
+                               headers=headers)
     if response.status_code != requests.codes.ok:
         raise NetworkError()
 
@@ -80,7 +82,8 @@ def request_login(username, password, key_iteration_count, multifactor_password=
         body['imei'] = client_id
 
     response = web_client.post('https://lastpass.com/login.php',
-                               data=body)
+                               data=body,
+                               headers=headers)
 
     if response.status_code != requests.codes.ok:
         raise NetworkError()

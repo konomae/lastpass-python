@@ -8,8 +8,8 @@ class Vault(object):
     @classmethod
     def open_remote(cls, username, password, multifactor_password=None, client_id=None):
         """Fetches a blob from the server and creates a vault"""
-        blob = cls.fetch_blob(username, password, multifactor_password, client_id)
-        return cls.open(blob, username, password)
+        blob, authenticator_blob = cls.fetch_blob(username, password, multifactor_password, client_id)
+        return cls.open(blob, authenticator_blob, username, password)
 
     @classmethod
     def open_local(cls, blob_filename, username, password):
@@ -18,20 +18,21 @@ class Vault(object):
         raise NotImplementedError()
 
     @classmethod
-    def open(cls, blob, username, password):
+    def open(cls, blob, authenticator_blob, username, password):
         """Creates a vault from a blob object"""
-        return cls(blob, blob.encryption_key(username, password))
+        return cls(blob, authenticator_blob, blob.encryption_key(username, password))
 
     @classmethod
     def fetch_blob(cls, username, password, multifactor_password=None, client_id=None):
         """Just fetches the blob, could be used to store it locally"""
         session = fetcher.login(username, password, multifactor_password, client_id)
         blob = fetcher.fetch(session)
+        authenticator_blob = fetcher.fetch_authenticator(session)
         fetcher.logout(session)
 
-        return blob
+        return blob, authenticator_blob
 
-    def __init__(self, blob, encryption_key):
+    def __init__(self, blob, authenticator_blob, encryption_key):
         """This more of an internal method, use one of the static constructors instead"""
         chunks = parser.extract_chunks(blob)
 
@@ -39,6 +40,7 @@ class Vault(object):
             raise InvalidResponseError('Blob is truncated')
 
         self.accounts = self.parse_accounts(chunks, encryption_key)
+        self.authenticator = self.parse_authenticator(authenticator_blob, encryption_key)
 
     def is_complete(self, chunks):
         return len(chunks) > 0 and chunks[-1].id == b'ENDM' and chunks[-1].payload == b'OK'
@@ -62,3 +64,6 @@ class Vault(object):
                 key = parser.parse_SHAR(i, encryption_key, rsa_private_key)['encryption_key']
 
         return accounts
+
+    def parse_authenticator(self, chunks, encryption_key):
+        return parser.parse_Authenticator(chunks, encryption_key)

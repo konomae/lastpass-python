@@ -36,7 +36,7 @@ def logout(session, web_client=http):
     )
 
     if response.status_code != requests.codes.ok:
-        raise NetworkError()
+        raise NetworkError("%s %s" % (response.status_code, response.reason))
 
 
 def fetch(session, web_client=http):
@@ -44,7 +44,7 @@ def fetch(session, web_client=http):
                               cookies={'PHPSESSID': session.id})
 
     if response.status_code != requests.codes.ok:
-        raise NetworkError()
+        raise NetworkError("%s %s" % (response.status_code, response.reason))
 
     return blob.Blob(decode_blob(response.content), session.key_iteration_count)
 
@@ -54,7 +54,7 @@ def request_iteration_count(username, web_client=http):
                                data={'email': username},
                                headers=headers)
     if response.status_code != requests.codes.ok:
-        raise NetworkError()
+        raise NetworkError("%s %s" % (response.status_code, response.reason))
 
     try:
         count = int(response.content)
@@ -87,7 +87,7 @@ def request_login(username, password, key_iteration_count, multifactor_password=
                                headers=headers)
 
     if response.status_code != requests.codes.ok:
-        raise NetworkError()
+        raise NetworkError("%s %s" % (response.status_code, response.reason))
 
     try:
         parsed_response = etree.fromstring(response.content)

@@ -50,8 +50,8 @@ def fetch(session, web_client=http):
 
 
 def request_iteration_count(username, web_client=http):
-    response = web_client.post('https://lastpass.com/iterations.php',
-                               data={'email': username},
+    response = web_client.get('https://lastpass.com/iterations.php',
+                               params={'email': username},
                                headers=headers)
     if response.status_code != requests.codes.ok:
         raise NetworkError()

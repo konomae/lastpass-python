@@ -61,8 +61,8 @@ class FetcherTestCase(unittest.TestCase):
         m.get.return_value = self._http_ok(str(self.key_iteration_count))
         fetcher.request_iteration_count(self.username, m)
         m.get.assert_called_with('https://lastpass.com/iterations.php',
-                                  params={'email': self.username},
-                                  headers=fetcher.headers)
+                                 params={'email': self.username},
+                                 headers=fetcher.headers)
 
     def test_request_iteration_count_returns_key_iteration_count(self):
         m = mock.Mock()

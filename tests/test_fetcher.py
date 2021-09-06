@@ -3,6 +3,7 @@ from base64 import b64decode
 import unittest
 import mock
 import lastpass
+from xml.etree import ElementTree as etree
 from lastpass.blob import Blob
 from lastpass import fetcher
 from lastpass.session import Session
@@ -10,13 +11,16 @@ from lastpass.session import Session
 
 class FetcherTestCase(unittest.TestCase):
     def setUp(self):
+        self.default_url = 'https://lastpass.com'
+        self.eu_url = 'https://lastpass.eu'
+
         self.username = 'username'
         self.password = 'password'
         self.key_iteration_count = 5000
 
         self.hash = b'7880a04588cfab954aa1a2da98fd9c0d2c6eba4c53e36a94510e6dbf30759256'
         self.session_id = '53ru,Hb713QnEVM5zWZ16jMvxS0'
-        self.session = Session(self.session_id, self.key_iteration_count)
+        self.session = Session(self.session_id, self.key_iteration_count, self.default_url)
 
         self.blob_response = 'TFBBVgAAAAMxMjJQUkVNAAAACjE0MTQ5'
         self.blob_bytes = b64decode(self.blob_response)
@@ -107,7 +111,7 @@ class FetcherTestCase(unittest.TestCase):
 
     def test_request_login_returns_a_session(self):
         self.assertEqual(self._request_login_with_xml('<ok sessionid="{}" />'.format(self.session_id)), self.session)
-
+    
     def test_request_login_raises_an_exception_on_http_error(self):
         self.assertRaises(lastpass.NetworkError, self._request_login_with_error)
 
@@ -126,11 +130,11 @@ class FetcherTestCase(unittest.TestCase):
 
     def test_request_login_raises_an_exception_on_unknown_username(self):
         self.assertRaises(lastpass.LastPassUnknownUsernameError,
-                          self._request_login_with_lastpass_error, 'unknownemail')
+                          self._request_login_with_lastpass_error, 'user_not_exists')
 
     def test_request_login_raises_an_exception_on_invalid_password(self):
         self.assertRaises(lastpass.LastPassInvalidPasswordError,
-                          self._request_login_with_lastpass_error, 'unknownpassword')
+                          self._request_login_with_lastpass_error, 'password_invalid')
 
     def test_request_login_raises_an_exception_on_missing_google_authenticator_code(self):
         message = 'Google Authenticator authentication required! ' \
@@ -153,6 +157,21 @@ class FetcherTestCase(unittest.TestCase):
         cause = 'Unknown cause'
         self.assertRaises(lastpass.LastPassUnknownError,
                           self._request_login_with_lastpass_error, cause)
+
+    def test_check_lastpass_url_returns_an_url(self):
+        server = 'lastpass.eu'
+        message = 'Please update to the latest version of LastPass.'
+        
+        parsed_response = etree.fromstring(self._lastpass_server_error(server, message))
+
+        self.assertEqual(fetcher.check_lastpass_url(parsed_response), self.eu_url)
+    
+    def test_check_lastpass_url_returns_None_if_server_attrb_not_present(self):
+        cause = 'Unknown cause'
+        
+        parsed_response = etree.fromstring(self._lastpass_error(cause, None))
+
+        self.assertEqual(fetcher.check_lastpass_url(parsed_response), None)
 
     def test_fetch_makes_a_get_request(self):
         m = mock.Mock()
@@ -225,7 +244,11 @@ class FetcherTestCase(unittest.TestCase):
         if message:
             return '<response><error cause="{}" message="{}" /></response>'.format(cause, message)
         return '<response><error cause="{}" /></response>'.format(cause)
-
+   
+    @staticmethod
+    def _lastpass_server_error(server, message):
+        return '<response><error server="{}" message="{}" /></response>'.format(server, message)
+    
     def _request_login_with_lastpass_error(self, cause, message=None):
         return self._request_login_with_xml(self._lastpass_error(cause, message))
 

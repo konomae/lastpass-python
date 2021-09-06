@@ -4,6 +4,8 @@ from base64 import b64decode
 from binascii import hexlify
 import requests
 from xml.etree import ElementTree as etree
+
+from requests.sessions import default_headers
 from . import blob
 from .version import __version__
 from .exceptions import (
@@ -18,20 +20,20 @@ from .exceptions import (
 )
 from .session import Session
 
-
 http = requests
+default_url = 'https://lastpass.com'
 headers = {'user-agent': 'lastpass-python/{}'.format(__version__)}
 
 
 def login(username, password, multifactor_password=None, client_id=None):
     key_iteration_count = request_iteration_count(username)
     return request_login(username, password, key_iteration_count, multifactor_password, client_id)
-
+ 
 
 def logout(session, web_client=http):
-    # type: (Session, requests) -> None
+    # type: (Session, requests) -> None 
     response = web_client.get(
-        'https://lastpass.com/logout.php?mobile=1',
+        f'{session.url}/logout.php?mobile=1',
         cookies={'PHPSESSID': session.id}
     )
 
@@ -40,7 +42,7 @@ def logout(session, web_client=http):
 
 
 def fetch(session, web_client=http):
-    response = web_client.get('https://lastpass.com/getaccts.php?mobile=1&b64=1&hash=0.0&hasplugin=3.0.23&requestsrc=android',
+    response = web_client.get(f'{session.url}/getaccts.php?mobile=1&b64=1&hash=0.0&hasplugin=3.0.23&requestsrc=android',
                               cookies={'PHPSESSID': session.id})
 
     if response.status_code != requests.codes.ok:
@@ -50,7 +52,7 @@ def fetch(session, web_client=http):
 
 
 def request_iteration_count(username, web_client=http):
-    response = web_client.get('https://lastpass.com/iterations.php',
+    response = web_client.get(f'{default_url}/iterations.php',
                               params={'email': username},
                               headers=headers)
     if response.status_code != requests.codes.ok:
@@ -66,7 +68,7 @@ def request_iteration_count(username, web_client=http):
     raise InvalidResponseError('Key iteration count is not positive')
 
 
-def request_login(username, password, key_iteration_count, multifactor_password=None, client_id=None, web_client=http):
+def request_login(username, password, key_iteration_count, multifactor_password=None, client_id=None, web_client=http, url=default_url):
     body = {
         'method': 'mobile',
         'web': 1,
@@ -82,7 +84,7 @@ def request_login(username, password, key_iteration_count, multifactor_password=
     if client_id:
         body['imei'] = client_id
 
-    response = web_client.post('https://lastpass.com/login.php',
+    response = web_client.post(f'{url}/login.php',
                                data=body,
                                headers=headers)
 
@@ -97,27 +99,42 @@ def request_login(username, password, key_iteration_count, multifactor_password=
     if parsed_response is None:
         raise InvalidResponseError()
 
-    session = create_session(parsed_response, key_iteration_count)
+    # Handle lastpass.eu and future other accounts
+    new_url = check_lastpass_url(parsed_response)
+
+    if new_url is not None:
+        return request_login(username, password, key_iteration_count, multifactor_password, client_id, web_client, url=new_url)
+
+    session = create_session(parsed_response, key_iteration_count, url)
     if not session:
         raise login_error(parsed_response)
     return session
 
-
-def create_session(parsed_response, key_iteration_count):
+def create_session(parsed_response, key_iteration_count, url):
     if parsed_response.tag == 'ok':
         session_id = parsed_response.attrib.get('sessionid')
         if isinstance(session_id, str):
-            return Session(session_id, key_iteration_count)
+            return Session(session_id, key_iteration_count, url)
 
+def check_lastpass_url(parsed_response):
+    error = None if parsed_response.tag != 'response' else parsed_response.find('error')
+    
+    if error is None or len(error.attrib) == 0:
+        return None
+
+    if error.attrib.get('server') is not None and error.attrib.get('server') != default_url:
+        return f"https://{error.attrib.get('server')}"
+    
+    return None
 
 def login_error(parsed_response):
     error = None if parsed_response.tag != 'response' else parsed_response.find('error')
     if error is None or len(error.attrib) == 0:
         raise UnknownResponseSchemaError()
-
+    
     exceptions = {
-        "unknownemail": LastPassUnknownUsernameError,
-        "unknownpassword": LastPassInvalidPasswordError,
+        "user_not_exists": LastPassUnknownUsernameError,
+        "password_invalid": LastPassInvalidPasswordError,
         "googleauthrequired": LastPassIncorrectGoogleAuthenticatorCodeError,
         "googleauthfailed": LastPassIncorrectGoogleAuthenticatorCodeError,
         "yubikeyrestricted": LastPassIncorrectYubikeyPasswordError,
@@ -125,7 +142,7 @@ def login_error(parsed_response):
 
     cause = error.attrib.get('cause')
     message = error.attrib.get('message')
-
+    
     if cause:
         return exceptions.get(cause, LastPassUnknownError)(message or cause)
     return InvalidResponseError(message)

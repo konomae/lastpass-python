@@ -5,7 +5,6 @@ from binascii import hexlify
 import requests
 from xml.etree import ElementTree as etree
 
-from requests.sessions import default_headers
 from . import blob
 from .version import __version__
 from .exceptions import (

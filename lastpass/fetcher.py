@@ -4,7 +4,6 @@ from base64 import b64decode
 from binascii import hexlify
 import requests
 from xml.etree import ElementTree as etree
-
 from . import blob
 from .version import __version__
 from .exceptions import (

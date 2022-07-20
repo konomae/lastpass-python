@@ -13,6 +13,7 @@ from .exceptions import (
     LastPassUnknownUsernameError,
     LastPassInvalidPasswordError,
     LastPassIncorrectGoogleAuthenticatorCodeError,
+    LastPassIncorrectMicrosoftAuthenticatorCodeError,
     LastPassIncorrectYubikeyPasswordError,
     LastPassUnknownError
 )
@@ -120,6 +121,8 @@ def login_error(parsed_response):
         "unknownpassword": LastPassInvalidPasswordError,
         "googleauthrequired": LastPassIncorrectGoogleAuthenticatorCodeError,
         "googleauthfailed": LastPassIncorrectGoogleAuthenticatorCodeError,
+        "microsoftauthrequired": LastPassIncorrectMicrosoftAuthenticatorCodeError,
+        "microsoftauthfailed": LastPassIncorrectMicrosoftAuthenticatorCodeError,
         "yubikeyrestricted": LastPassIncorrectYubikeyPasswordError,
     }
 

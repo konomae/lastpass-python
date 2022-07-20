@@ -44,6 +44,11 @@ class LastPassIncorrectGoogleAuthenticatorCodeError(Error):
     pass
 
 
+class LastPassIncorrectMicrosoftAuthenticatorCodeError(Error):
+    """LastPass error: missing or incorrect Microsoft Authenticator code"""
+    pass
+
+
 class LastPassIncorrectYubikeyPasswordError(Error):
     """LastPass error: missing or incorrect Yubikey password"""
     pass

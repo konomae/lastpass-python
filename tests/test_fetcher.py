@@ -34,10 +34,14 @@ class FetcherTestCase(unittest.TestCase):
         self.login_post_data_with_device_id.update({'imei': self.device_id})
 
         self.google_authenticator_code = '12345'
+        self.microsoft_authenticator_code = '12345'
         self.yubikey_password = 'emdbwzemyisymdnevznyqhqnklaqheaxszzvtnxjrmkb'
 
         self.login_post_data_with_google_authenticator_code = self.login_post_data.copy()
         self.login_post_data_with_google_authenticator_code['otp'] = self.google_authenticator_code
+
+        self.login_post_data_with_microsoft_authenticator_code = self.login_post_data.copy()
+        self.login_post_data_with_microsoft_authenticator_code['otp'] = self.microsoft_authenticator_code
 
         self.login_post_data_with_yubikey_password = self.login_post_data.copy()
         self.login_post_data_with_yubikey_password['otp'] = self.yubikey_password
@@ -100,6 +104,11 @@ class FetcherTestCase(unittest.TestCase):
                                                 None,
                                                 self.login_post_data_with_google_authenticator_code)
 
+    def test_request_login_makes_a_post_request_with_microsoft_authenticator_code(self):
+        self._verify_request_login_post_request(self.microsoft_authenticator_code,
+                                                None,
+                                                self.login_post_data_with_microsoft_authenticator_code)
+
     def test_request_login_makes_a_post_request_with_yubikey_password(self):
         self._verify_request_login_post_request(self.yubikey_password,
                                                 None,
@@ -142,6 +151,17 @@ class FetcherTestCase(unittest.TestCase):
         message = 'Google Authenticator authentication failed!'
         self.assertRaises(lastpass.LastPassIncorrectGoogleAuthenticatorCodeError,
                           self._request_login_with_lastpass_error, 'googleauthfailed', message)
+
+    def test_request_login_raises_an_exception_on_missing_microsoft_authenticator_code(self):
+        message = 'Microsoft Authenticator authentication required! ' \
+                  'Upgrade your browser extension so you can enter it.'
+        self.assertRaises(lastpass.LastPassIncorrectMicrosoftAuthenticatorCodeError,
+                          self._request_login_with_lastpass_error, 'microsoftauthrequired', message)
+
+    def test_request_login_raises_an_exception_on_incorrect_microsoft_authenticator_code(self):
+        message = 'Microsoft Authenticator authentication failed!'
+        self.assertRaises(lastpass.LastPassIncorrectMicrosoftAuthenticatorCodeError,
+                          self._request_login_with_lastpass_error, 'microsoftauthfailed', message)
 
     def test_request_login_raises_an_exception_on_missing_or_incorrect_yubikey_password(self):
         message = 'Your account settings have restricted you from logging in ' \

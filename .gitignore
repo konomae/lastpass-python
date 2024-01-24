@@ -4,7 +4,9 @@ example/credentials.json
 
 *.egg-info/
 dist/
+build
 .tox
+.eggs
 
 .python-version
 .idea/

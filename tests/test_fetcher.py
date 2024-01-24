@@ -16,22 +16,37 @@ class FetcherTestCase(unittest.TestCase):
 
         self.hash = b'7880a04588cfab954aa1a2da98fd9c0d2c6eba4c53e36a94510e6dbf30759256'
         self.session_id = '53ru,Hb713QnEVM5zWZ16jMvxS0'
-        self.session = Session(self.session_id, self.key_iteration_count)
+        self.token = '54aa1a2da98fd9c0d2c6eba4c5'
+        self.session = Session(self.session_id, self.key_iteration_count, token=self.token)
 
         self.blob_response = 'TFBBVgAAAAMxMjJQUkVNAAAACjE0MTQ5'
         self.blob_bytes = b64decode(self.blob_response)
         self.blob = Blob(self.blob_bytes, self.key_iteration_count)
 
-        self.login_post_data = {'method': 'mobile',
-                                'web': 1,
-                                'xml': 1,
+        self.login_post_data = {'method': 'cli',
+                                'xml': 2,
+                                'outofbandsupported': 1,
+                                'includeprivatekeyenc': 1,
                                 'username': self.username,
                                 'hash': self.hash,
                                 'iterations': self.key_iteration_count}
 
         self.device_id = '492378378052455'
         self.login_post_data_with_device_id = self.login_post_data.copy()
-        self.login_post_data_with_device_id.update({'imei': self.device_id})
+        self.login_post_data_with_device_id.update({'trustlabel': self.device_id})
+        self.login_post_data_with_device_id.update({'uuid': self.device_id})
+
+        self.trust_id = '@2ykJ0Tp#dVi06qh6g6kvzOqjQGAWfKv'
+
+        self.request_trust_data = {
+            'token': self.token,
+            'trustlabel': self.device_id,
+            'uuid': self.trust_id
+        }
+
+        self.request_trust_cookies = {
+            'PHPSESSID': self.session_id
+        }
 
         self.google_authenticator_code = '12345'
         self.yubikey_password = 'emdbwzemyisymdnevznyqhqnklaqheaxszzvtnxjrmkb'
@@ -95,6 +110,9 @@ class FetcherTestCase(unittest.TestCase):
     def test_request_login_makes_a_post_request_with_device_id(self):
         self._verify_request_login_post_request(None, self.device_id, self.login_post_data_with_device_id)
 
+    def test_request_login_makes_a_post_request_with_trust_requested(self):
+        self._verify_request_trust(None, self.device_id, self.request_trust_data, cookies=self.request_trust_cookies, trust_id=self.trust_id, trust_me=True)
+
     def test_request_login_makes_a_post_request_with_google_authenticator_code(self):
         self._verify_request_login_post_request(self.google_authenticator_code,
                                                 None,
@@ -106,7 +124,8 @@ class FetcherTestCase(unittest.TestCase):
                                                 self.login_post_data_with_yubikey_password)
 
     def test_request_login_returns_a_session(self):
-        self.assertEqual(self._request_login_with_xml('<ok sessionid="{}" />'.format(self.session_id)), self.session)
+        tested_session = self._request_login_with_xml('<ok sessionid="{}" token="{}"/>'.format(self.session_id, self.token))
+        self.assertEqual(tested_session, self.session)
 
     def test_request_login_raises_an_exception_on_http_error(self):
         self.assertRaises(lastpass.NetworkError, self._request_login_with_error)
@@ -149,6 +168,14 @@ class FetcherTestCase(unittest.TestCase):
         self.assertRaises(lastpass.LastPassIncorrectYubikeyPasswordError,
                           self._request_login_with_lastpass_error, 'yubikeyrestricted', message)
 
+    def test_request_login_raises_an_exception_on_lastpass_authenticator(self):
+        message = 'Multifactor authentication required! ' \
+                  'Upgrade your browser extension so you can enter it.'
+        self.assertRaises(lastpass.LastPassIncorrectOutOfBandRequiredError,
+                          self._request_login_with_lastpass_multifactor_required, 'outofbandrequired', message)
+        self.assertRaises(lastpass.LastPassIncorrectMultiFactorResponseError,
+                          self._request_login_with_lastpass_multifactor_required, 'multifactorresponsefailed', message)
+
     def test_request_login_raises_an_exception_on_unknown_lastpass_error_without_a_message(self):
         cause = 'Unknown cause'
         self.assertRaises(lastpass.LastPassUnknownError,
@@ -164,7 +191,8 @@ class FetcherTestCase(unittest.TestCase):
     def test_fetch_returns_a_blob(self):
         m = mock.Mock()
         m.get.return_value = self._http_ok(self.blob_response)
-        self.assertEqual(fetcher.fetch(self.session, m), self.blob)
+        returned_blob = fetcher.fetch(self.session, m)
+        self.assertEqual(returned_blob, self.blob)
 
     def test_fetch_raises_exception_on_http_error(self):
         m = mock.Mock()
@@ -199,13 +227,19 @@ class FetcherTestCase(unittest.TestCase):
         for iterations, hash in hashes:
             self.assertEqual(hash, fetcher.make_hash('postlass@gmail.com', 'pl1234567890', iterations))
 
-    def _verify_request_login_post_request(self, multifactor_password, device_id, post_data):
+    def _verify_request_login_post_request(self, multifactor_password, device_id, post_data, trust_me=False):
         m = mock.Mock()
         m.post.return_value = self._http_ok('<ok sessionid="{}" />'.format(self.session_id))
-        fetcher.request_login(self.username, self.password, self.key_iteration_count, multifactor_password, device_id, m)
+        fetcher.request_login(self.username, self.password, self.key_iteration_count, multifactor_password, device_id, m, trust_id=device_id, trust_me=trust_me)
         m.post.assert_called_with('https://lastpass.com/login.php',
                                   data=post_data,
                                   headers=fetcher.headers)
+
+    def _verify_request_trust(self, multifactor_password, device_id, post_data, cookies, trust_id, trust_me=False):
+        m = mock.Mock()
+        m.post.return_value = self._http_ok('<ok sessionid="{}" token="{}"/>'.format(self.session_id, self.token))
+        fetcher.request_login(self.username, self.password, self.key_iteration_count, multifactor_password, device_id, m, trust_id=trust_id, trust_me=trust_me)
+        m.post.assert_called_with('https://lastpass.com/trust.php', data=post_data, cookies=cookies)
 
     @staticmethod
     def _mock_response(code, body):
@@ -226,8 +260,18 @@ class FetcherTestCase(unittest.TestCase):
             return '<response><error cause="{}" message="{}" /></response>'.format(cause, message)
         return '<response><error cause="{}" /></response>'.format(cause)
 
+    @staticmethod
+    def _lastpass_multifactor_required(cause, message):
+        if message:
+            return '<response><error message="{}" cause="{}" allowtrust="1" capabilities="push,totp,sms,outofband,outofbandauto,passcode" outofbandtype="lastpassauth" outofbandname="LastPass Authenticator" allowmultifactortrust="true" trustexpired="0" trustlabel="" hidedisable="false"  /></response>'.format(message, cause)
+        return '<response><error cause="{}" allowtrust="1" capabilities="push,totp,sms,outofband,outofbandauto,passcode" outofbandtype="lastpassauth" outofbandname="LastPass Authenticator" allowmultifactortrust="true" trustexpired="0" trustlabel="" hidedisable="false"  /></response>'.format(cause)
+
     def _request_login_with_lastpass_error(self, cause, message=None):
         return self._request_login_with_xml(self._lastpass_error(cause, message))
+
+    def _request_login_with_lastpass_multifactor_required(self, cause, message=None):
+        return self._request_login_with_xml(
+            self._lastpass_multifactor_required(cause, message))
 
     def _request_login_with_xml(self, text):
         return self._request_login_with_ok(text)
